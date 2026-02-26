@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>APP Store · 应用收藏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #0a0a0c;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 16px 12px 0px;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding-bottom: 90px;
+        }
+
+        /* 头部 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: background-color 0.3s;
+        }
+
+        /* 安卓/苹果颜色会在JS中动态设置 */
+        .logo-icon.ios-theme {
+            background: #1e88e5;
+            box-shadow: 0 4px 12px rgba(30, 136, 229, 0.4);
+        }
+
+        .logo-icon.android-theme {
+            background: #4CAF50;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .logo-text small {
+            font-size: 13px;
+            color: #888;
+            font-weight: 400;
+            margin-left: 4px;
+        }
+
+        .add-button {
+            border: none;
+            border-radius: 30px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 500;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .add-button.ios-theme {
+            background: #1e88e5;
+            box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+        }
+
+        .add-button.android-theme {
+            background: #4CAF50;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .add-button:active {
+            transform: scale(0.96);
+        }
+
+        .add-button.ios-theme:active {
+            background: #1565c0;
+        }
+
+        .add-button.android-theme:active {
+            background: #388E3C;
+        }
+
+        /* 搜索条 */
+        .search-bar {
+            background: #1c1c1e;
+            border: 1px solid #2c2c2e;
+            border-radius: 30px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .search-bar span {
+            font-size: 18px;
+            color: #888;
+        }
+
+        .search-bar input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            width: 100%;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .search-bar input::placeholder {
+            color: #555;
+        }
+
+        /* 应用卡片网格 */
+        .apps-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            margin-top: 4px;
+            padding-bottom: 20px;
+        }
+
+        .app-card {
+            background: #1c1c1e;
+            border-radius: 24px;
+            padding: 16px;
+            border: 1px solid #2c2c2e;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .app-card:active {
+            background: #2c2c2e;
+            transform: scale(0.99);
+        }
+
+        .app-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            background: #2c2c2e;
+            overflow: hidden;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            border: 2px solid #3a3a3c;
+            cursor: pointer;
+        }
+
+        .app-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .app-icon.placeholder {
+            background: #2c2c2e;
+            color: #555;
+        }
+
+        .app-info {
+            flex: 1;
+            min-width: 0;
+            cursor: pointer;
+        }
+
+        .app-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .app-platform {
+            font-size: 12px;
+            background: #2c2c2e;
+            padding: 3px 10px;
+            border-radius: 20px;
+            color: #aaa;
+            display: inline-block;
+            border: 0.5px solid #3a3a3c;
+        }
+
+        .app-url-preview {
+            font-size: 12px;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+            margin-bottom: 8px;
+        }
+
+        .download-badge {
+            background: #1e88e5;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(30, 136, 229, 0.3);
+        }
+
+        /* 下载徽章颜色也会跟随设备变化 */
+        .download-badge.ios-theme {
+            background: #1e88e5;
+            box-shadow: 0 2px 8px rgba(30, 136, 229, 0.3);
+        }
+
+        .download-badge.android-theme {
+            background: #4CAF50;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .app-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .corner-btn {
+            background: transparent;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .corner-btn.edit-btn:active {
+            background: #2c2c2e;
+        }
+
+        .corner-btn.edit-btn.ios-theme:active {
+            color: #1e88e5;
+        }
+
+        .corner-btn.edit-btn.android-theme:active {
+            color: #4CAF50;
+        }
+
+        .corner-btn.delete-btn:active {
+            background: #8b1e1e;
+            color: white;
+        }
+
+        /* 空状态 */
+        .empty-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #555;
+            background: #1c1c1e;
+            border-radius: 30px;
+            border: 2px dashed #2c2c2e;
+            margin-top: 30px;
+        }
+
+        .empty-message .big-icon {
+            font-size: 54px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-message .hint {
+            font-size: 14px;
+            color: #777;
+            margin-top: 8px;
+        }
+
+        /* 底部导航栏 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 360px;
+            background: rgba(28, 28, 30, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            padding: 6px 4px;
+            z-index: 100;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: #8e8e93;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 0;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 60px;
+            max-width: 60px;
+            gap: 2px;
+        }
+
+        .nav-item.active {
+            color: white;
+            font-weight: 600;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-item.active.ios-theme {
+            background: rgba(30, 136, 229, 0.2);
+        }
+
+        .nav-item.active.android-theme {
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .nav-item i {
+            font-size: 20px;
+            font-style: normal;
+        }
+
+        /* 弹窗 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            padding: 16px;
+        }
+
+        .modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: #1c1c1e;
+            width: 100%;
+            max-width: 360px;
+            border-radius: 32px;
+            padding: 26px 22px;
+            border: 1px solid #2c2c2e;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-card h2 {
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 22px;
+            text-align: center;
+        }
+
+        .input-field {
+            margin-bottom: 20px;
+        }
+
+        .input-field label {
+            display: block;
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .input-field input, .input-field select {
+            width: 100%;
+            padding: 15px 18px;
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            border-radius: 24px;
+            font-size: 15px;
+            color: white;
+            outline: none;
+        }
+
+        .input-field input:focus {
+            border-color: #1e88e5;
+        }
+
+        .url-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .url-input-row input {
+            flex: 1;
+        }
+
+        .fetch-btn {
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            border-radius: 24px;
+            padding: 15px 18px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .fetch-btn:active {
+            background: #3a3a3c;
+        }
+
+        .fetch-status {
+            font-size: 12px;
+            color: #1e88e5;
+            margin-top: 6px;
+        }
+
+        .platform-selector {
+            display: flex;
+            gap: 12px;
+            margin: 8px 0 16px;
+        }
+
+        .platform-option {
+            flex: 1;
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            border-radius: 24px;
+            padding: 14px;
+            text-align: center;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .platform-option.selected {
+            background: #1e88e5;
+            border-color: #1e88e5;
+            color: white;
+        }
+
+        .platform-option i {
+            font-size: 22px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .modal-btn {
+            padding: 14px 28px;
+            border-radius: 30px;
+            border: 1px solid #3a3a3c;
+            background: transparent;
+            color: #ccc;
+            cursor: pointer;
+            min-width: 130px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .modal-btn.primary {
+            background: #1e88e5;
+            color: white;
+            border-color: #1e88e5;
+        }
+
+        .modal-btn.primary:active {
+            background: #1565c0;
+        }
+
+        .modal-btn.secondary:active {
+            background: #2c2c2e;
+        }
+
+        .hint-text {
+            font-size: 12px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        /* 搜索页 */
+        .search-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0c;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            padding: 20px 16px 0;
+            overflow-y: auto;
+        }
+
+        .search-overlay.show {
+            display: flex;
+        }
+
+        .search-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            background: #1c1c1e;
+            border: 1px solid #2c2c2e;
+            border-radius: 30px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .search-input-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: #1c1c1e;
+            border: 1px solid #2c2c2e;
+            border-radius: 30px;
+            padding: 12px 18px;
+        }
+
+        .search-input-box input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            width: 100%;
+            outline: none;
+        }
+
+        .search-results {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex: 1;
+            padding-bottom: 20px;
+        }
+
+        .version-toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 40px;
+            font-size: 16px;
+            z-index: 300;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            border: 1px solid #555;
+        }
+        .version-toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="version-toast" id="versionToast">APP Store · 设备自适应</div>
+
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="logo-area">
+                <div class="logo-icon" id="logoIcon">C</div>
+                <div class="logo-text">APP Store<span>收藏</span></div>
+            </div>
+            <div class="add-button" id="openAddModalBtn">
+                <span>+</span> 添加
+            </div>
+        </div>
+
+        <!-- 搜索条 -->
+        <div class="search-bar" id="openSearchBtn">
+            <span>🔍</span>
+            <input type="text" placeholder="搜索应用或下载链接" readonly value="">
+        </div>
+
+        <!-- 应用卡片网格 -->
+        <div class="apps-grid" id="appsGrid"></div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <div class="bottom-nav" id="bottomNav">
+        <button class="nav-item active" data-cat="apps"><i>📱</i> 应用</button>
+        <button class="nav-item" data-cat="games"><i>🎮</i> 游戏</button>
+        <button class="nav-item" data-cat="movies"><i>🎬</i> 电影</button>
+        <button class="nav-item" data-cat="music"><i>🎵</i> 音乐</button>
+        <button class="nav-item" data-cat="books"><i>📚</i> 图书</button>
+    </div>
+
+    <!-- 添加/编辑弹窗 -->
+    <div class="modal" id="appModal">
+        <div class="modal-card">
+            <h2 id="modalTitle">添加应用到收藏</h2>
+            
+            <div class="input-field">
+                <label>应用名称</label>
+                <input type="text" id="appName" placeholder="例如: 我的应用">
+            </div>
+
+            <div class="input-field">
+                <label>下载链接 (Loadly.io)</label>
+                <div class="url-input-row">
+                    <input type="url" id="appUrl" placeholder="https://loadly.io/..." value="https://loadly.io/">
+                    <button class="fetch-btn" id="fetchInfoBtn">获取</button>
+                </div>
+                <div id="fetchStatus" class="fetch-status"></div>
+            </div>
+
+            <div class="input-field">
+                <label>平台</label>
+                <div class="platform-selector" id="platformSelector">
+                    <div class="platform-option selected" data-platform="ios"><i>🍎</i> iOS</div>
+                    <div class="platform-option" data-platform="android"><i>🤖</i> Android</div>
+                </div>
+                <input type="hidden" id="appPlatform" value="ios">
+            </div>
+
+            <div class="input-field">
+                <label>分类</label>
+                <select id="appCategory">
+                    <option value="apps">📱 应用</option>
+                    <option value="games">🎮 游戏</option>
+                    <option value="movies">🎬 电影</option>
+                    <option value="music">🎵 音乐</option>
+                    <option value="books">📚 图书</option>
+                </select>
+            </div>
+
+            <div class="input-field">
+                <label>图标 (可选)</label>
+                <input type="file" id="appIcon" accept="image/*">
+                <div class="hint-text">点击应用图标5次也可更换</div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn secondary" id="cancelModalBtn">取消</button>
+                <button class="modal-btn primary" id="saveAppBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索页面 -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-header">
+            <button class="back-btn" id="closeSearchBtn">← 返回</button>
+            <div class="search-input-box">
+                <span>🔍</span>
+                <input type="text" id="searchInput" placeholder="搜索应用名称或下载链接...">
+            </div>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <script>
+        (function() {
+            // ========== 设备检测 ==========
+            function detectDevice() {
+                const ua = navigator.userAgent || navigator.vendor || window.opera;
+                
+                // 检测安卓
+                if (/android/i.test(ua)) {
+                    return 'android';
+                }
+                
+                // 检测iOS
+                if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
+                    return 'ios';
+                }
+                
+                // 检测Mac（也归为iOS风格）
+                if (/Macintosh|Mac OS X/.test(ua)) {
+                    return 'ios';
+                }
+                
+                // 默认返回ios
+                return 'ios';
+            }
+
+            const deviceType = detectDevice();
+            const themeClass = deviceType === 'android' ? 'android-theme' : 'ios-theme';
+            
+            console.log('检测到设备:', deviceType, '使用主题:', themeClass);
+
+            // ========== 应用主题 ==========
+            function applyTheme() {
+                // 图标
+                const logoIcon = document.getElementById('logoIcon');
+                logoIcon.classList.add(themeClass);
+                
+                // 添加按钮
+                const addBtn = document.getElementById('openAddModalBtn');
+                addBtn.classList.add(themeClass);
+                
+                // 底部导航项
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    if (item.classList.contains('active')) {
+                        item.classList.add(themeClass);
+                    }
+                });
+                
+                // 所有下载徽章（后续动态添加的也会处理）
+            }
+
+            // 为动态生成的下载徽章添加主题
+            function styleDownloadBadge(badge) {
+                if (badge) {
+                    badge.classList.add(themeClass);
+                }
+            }
+
+            // ========== 数据存储 ==========
+            let apps = [];
+            let currentCategory = 'apps';
+            let editingId = null;
+            let selectedPlatform = 'ios';
+            let appsClickCount = 0;
+            let versionTimer = null;
+
+            // 导出计数器
+            let exportClickCount = 0;
+            let exportTimer = null;
+
+            // 加载保存的数据
+            try {
+                const saved = localStorage.getItem('appstore_apps_data');
+                if (saved) apps = JSON.parse(saved);
+            } catch (e) { apps = []; }
+
+            // 默认示例数据
+            if (apps.length === 0) {
+                apps.push({
+                    id: 'example-' + Date.now(),
+                    name: '示例应用',
+                    url: 'https://loadly.io/',
+                    platform: 'ios',
+                    category: 'apps',
+                    iconData: null
+                });
+            }
+
+            function saveApps() {
+                try { localStorage.setItem('appstore_apps_data', JSON.stringify(apps)); } catch (e) {}
+            }
+
+            // DOM 元素
+            const grid = document.getElementById('appsGrid');
+            const modal = document.getElementById('appModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const appName = document.getElementById('appName');
+            const appUrl = document.getElementById('appUrl');
+            const appPlatform = document.getElementById('appPlatform');
+            const appCategory = document.getElementById('appCategory');
+            const appIcon = document.getElementById('appIcon');
+            const cancelBtn = document.getElementById('cancelModalBtn');
+            const saveBtn = document.getElementById('saveAppBtn');
+            const addBtn = document.getElementById('openAddModalBtn');
+            const fetchInfoBtn = document.getElementById('fetchInfoBtn');
+            const fetchStatus = document.getElementById('fetchStatus');
+            const navItems = document.querySelectorAll('.nav-item');
+            const openSearchBtn = document.getElementById('openSearchBtn');
+            const closeSearchBtn = document.getElementById('closeSearchBtn');
+            const searchOverlay = document.getElementById('searchOverlay');
+            const searchInput = document.getElementById('searchInput');
+            const searchResults = document.getElementById('searchResults');
+            const versionToast = document.getElementById('versionToast');
+            const platformOptions = document.querySelectorAll('.platform-option');
+
+            // 应用主题
+            applyTheme();
+
+            // 平台选择
+            platformOptions.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    platformOptions.forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    appPlatform.value = opt.dataset.platform;
+                });
+            });
+
+            // 显示版本号
+            function showVersion() {
+                versionToast.classList.add('show');
+                setTimeout(() => versionToast.classList.remove('show'), 2000);
+            }
+
+            // 点击logo触发版本号和导出
+            document.querySelector('.logo-icon').addEventListener('click', () => {
+                appsClickCount++;
+                if (versionTimer) clearTimeout(versionTimer);
+                versionTimer = setTimeout(() => appsClickCount = 0, 3000);
+                if (appsClickCount >= 5) { 
+                    showVersion(); 
+                    appsClickCount = 0;
+                    
+                    exportClickCount++;
+                    if (exportTimer) clearTimeout(exportTimer);
+                    exportTimer = setTimeout(() => exportClickCount = 0, 3000);
+                    if (exportClickCount >= 3) {
+                        performExport();
+                        exportClickCount = 0;
+                    }
+                }
+            });
+
+            // 导出功能
+            function performExport() {
+                if (apps.length === 0) { alert('没有数据可导出'); return; }
+                
+                const backup = {
+                    version: '1.0',
+                    timestamp: new Date().toISOString(),
+                    apps: apps
+                };
+                
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'appstore_backup_' + new Date().toISOString().slice(0,10) + '.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('✅ 备份已导出');
+            }
+
+            // 获取网址信息
+            fetchInfoBtn.addEventListener('click', () => {
+                const url = appUrl.value.trim();
+                if (!url) { alert('请输入下载链接'); return; }
+                
+                fetchStatus.innerText = '正在获取信息...';
+                
+                try {
+                    const urlObj = new URL(url);
+                    let hostname = urlObj.hostname.replace('www.', '');
+                    let path = urlObj.pathname.split('/').pop() || '';
+                    
+                    if (path && path.length > 3) {
+                        appName.value = decodeURIComponent(path).replace(/\.(ipa|apk)$/i, '');
+                    } else {
+                        appName.value = hostname.split('.')[0];
+                    }
+                    
+                    if (url.includes('.ipa') || url.includes('ios') || url.includes('iPhone')) {
+                        appPlatform.value = 'ios';
+                        platformOptions.forEach(o => {
+                            o.classList.toggle('selected', o.dataset.platform === 'ios');
+                        });
+                    } else if (url.includes('.apk') || url.includes('android')) {
+                        appPlatform.value = 'android';
+                        platformOptions.forEach(o => {
+                            o.classList.toggle('selected', o.dataset.platform === 'android');
+                        });
+                    }
+                    
+                    fetchStatus.innerText = '✓ 已从链接提取名称';
+                } catch {
+                    fetchStatus.innerText = '请输入有效链接';
+                }
+            });
+
+            // 渲染主网格
+            function renderGrid() {
+                let filtered = apps;
+                if (currentCategory !== 'all') {
+                    filtered = apps.filter(app => app.category === currentCategory);
+                }
+
+                if (filtered.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-message">
+                            <div class="big-icon">📦</div>
+                            <div>还没有收藏应用</div>
+                            <div class="hint">点击"添加"按钮开始收藏下载链接</div>
+                        </div>`;
+                    return;
+                }
+
+                let html = '';
+                filtered.forEach(app => {
+                    let iconHtml = '';
+                    if (app.iconData) {
+                        iconHtml = `<img src="${app.iconData}" alt="">`;
+                    } else {
+                        const platformIcon = app.platform === 'ios' ? '🍎' : '🤖';
+                        iconHtml = `<div class="app-icon placeholder">${platformIcon}</div>`;
+                    }
+
+                    const platformTag = app.platform === 'ios' ? 'iOS' : 'Android';
+                    
+                    html += `
+                        <div class="app-card" data-id="${app.id}">
+                            <div class="app-icon image-clickable" data-id="${app.id}">
+                                ${iconHtml}
+                            </div>
+                            <div class="app-info" onclick="window.open('${app.url}', '_blank')">
+                                <div class="app-name">
+                                    ${app.name}
+                                    <span class="app-platform">${platformTag}</span>
+                                </div>
+                                <div class="app-url-preview">${app.url}</div>
+                                <div style="margin-top: 6px;">
+                                    <span class="download-badge ${themeClass}">
+                                        ⬇️ 下载
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="app-actions">
+                                <button class="corner-btn edit-btn" data-id="${app.id}">✏️</button>
+                                <button class="corner-btn delete-btn" data-id="${app.id}">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                grid.innerHTML = html;
+
+                // 图片点击更换
+                document.querySelectorAll('.image-clickable').forEach(imgDiv => {
+                    const id = imgDiv.dataset.id;
+                    let clickCount = 0;
+                    let timer = null;
+                    
+                    imgDiv.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        clickCount++;
+                        if (timer) clearTimeout(timer);
+                        timer = setTimeout(() => clickCount = 0, 3000);
+                        
+                        if (clickCount >= 5) {
+                            clickCount = 0;
+                            const app = apps.find(a => a.id === id);
+                            if (app) {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = 'image/*';
+                                input.onchange = (e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = (re) => {
+                                            app.iconData = re.target.result;
+                                            saveApps();
+                                            renderGrid();
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
+                                };
+                                input.click();
+                            }
+                        }
+                    });
+                });
+
+                // 编辑
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const id = btn.dataset.id;
+                        const app = apps.find(a => a.id === id);
+                        if (app) {
+                            editingId = id;
+                            modalTitle.innerText = '编辑应用';
+                            appName.value = app.name || '';
+                            appUrl.value = app.url || '';
+                            appCategory.value = app.category || 'apps';
+                            appPlatform.value = app.platform || 'ios';
+                            
+                            platformOptions.forEach(o => {
+                                o.classList.toggle('selected', o.dataset.platform === app.platform);
+                            });
+                            
+                            appIcon.value = '';
+                            fetchStatus.innerText = '';
+                            modal.classList.add('show');
+                        }
+                    });
+                });
+
+                // 删除
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const id = btn.dataset.id;
+                        if (confirm('确定删除这个应用吗？')) {
+                            apps = apps.filter(a => a.id !== id);
+                            saveApps();
+                            renderGrid();
+                        }
+                    });
+                });
+            }
+
+            // 添加按钮
+            addBtn.addEventListener('click', () => {
+                editingId = null;
+                modalTitle.innerText = '添加应用到收藏';
+                appName.value = '';
+                appUrl.value = 'https://loadly.io/';
+                appCategory.value = 'apps';
+                appPlatform.value = 'ios';
+                platformOptions.forEach(o => {
+                    o.classList.toggle('selected', o.dataset.platform === 'ios');
+                });
+                appIcon.value = '';
+                fetchStatus.innerText = '';
+                modal.classList.add('show');
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                modal.classList.remove('show');
+            });
+
+            saveBtn.addEventListener('click', () => {
+                const name = appName.value.trim();
+                let url = appUrl.value.trim();
+                const category = appCategory.value;
+                const platform = appPlatform.value;
+                
+                if (!name) { alert('请输入应用名称'); return; }
+                if (!url) { alert('请输入下载链接'); return; }
+                
+                if (!url.startsWith('http')) {
+                    url = 'https://' + url;
+                }
+
+                const file = appIcon.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => saveApp(name, url, category, platform, e.target.result);
+                    reader.readAsDataURL(file);
+                } else {
+                    saveApp(name, url, category, platform, null);
+                }
+            });
+
+            function saveApp(name, url, category, platform, iconData) {
+                if (editingId) {
+                    const idx = apps.findIndex(a => a.id === editingId);
+                    if (idx !== -1) {
+                        apps[idx].name = name;
+                        apps[idx].url = url;
+                        apps[idx].category = category;
+                        apps[idx].platform = platform;
+                        if (iconData) apps[idx].iconData = iconData;
+                    }
+                } else {
+                    apps.push({
+                        id: Date.now() + '-' + Math.random().toString(36).substr(2, 6),
+                        name, url, category, platform, iconData
+                    });
+                }
+                saveApps();
+                renderGrid();
+                modal.classList.remove('show');
+            }
+
+            // 底部导航分类切换
+            function setActiveNav(cat) {
+                navItems.forEach(item => {
+                    item.classList.remove('active', 'ios-theme', 'android-theme');
+                    if (item.dataset.cat === cat) {
+                        item.classList.add('active', themeClass);
+                    }
+                });
+            }
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    currentCategory = item.dataset.cat;
+                    setActiveNav(currentCategory);
+                    renderGrid();
+                });
+            });
+
+            // 搜索功能
+            function performSearch(keyword) {
+                keyword = keyword.toLowerCase().trim();
+                if (keyword === '') return [];
+                
+                return apps.filter(app => 
+                    app.name.toLowerCase().includes(keyword) || 
+                    app.url.toLowerCase().includes(keyword)
+                );
+            }
+
+            function renderSearchResults(results) {
+                if (results.length === 0) {
+                    searchResults.innerHTML = '<div class="empty-message">没有找到匹配的应用</div>';
+                    return;
+                }
+                
+                let html = '';
+                results.forEach(app => {
+                    const platformIcon = app.platform === 'ios' ? '🍎' : '🤖';
+                    html += `
+                        <div class="app-card" data-id="${app.id}" style="margin-bottom: 8px;">
+                            <div class="app-icon">${platformIcon}</div>
+                            <div class="app-info" onclick="window.open('${app.url}', '_blank')">
+                                <div class="app-name">${app.name}</div>
+                                <div class="app-url-preview">${app.url}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                searchResults.innerHTML = html;
+            }
+
+            openSearchBtn.addEventListener('click', () => {
+                searchOverlay.classList.add('show');
+                searchInput.value = '';
+                searchInput.focus();
+                renderSearchResults([]);
+            });
+
+            closeSearchBtn.addEventListener('click', () => {
+                searchOverlay.classList.remove('show');
+            });
+
+            searchInput.addEventListener('input', () => {
+                const results = performSearch(searchInput.value);
+                renderSearchResults(results);
+            });
+
+            // 模态框点击外部关闭
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.remove('show');
+            });
+
+            // 初始化
+            setActiveNav(currentCategory);
+            renderGrid();
+        })();
+    </script>
+</body>
+</html>
