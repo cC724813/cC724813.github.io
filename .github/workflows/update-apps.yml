@@ -1,38 +1,37 @@
-name: 自动更新 Loadly 应用链接
-
+name: 获取 Loadly 应用列表
 on:
   schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
+    - cron: '0 */6 * * *'   # 每6小时运行一次
+  workflow_dispatch:         # 允许手动触发
 
 jobs:
-  update-apps:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: 获取 Loadly 应用列表
+      - name: 调用 Loadly API
         run: |
           curl -X POST https://api.loadly.io/apiv2/app/listMy \
-            -d "_api_key=${{ secrets.LOADLY_API_KEY }}" \
+            -d "_api_key=2a2ea42704ab21d9c05978642f194d13" \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -o apps.json
-      - name: 生成 JavaScript 数组
+      - name: 生成 HTML 链接列表
         run: |
-          jq -r '.data.list[] | select(.buildCategory == "apps") | "    { id: \"\(.buildKey)\", name: \"\(.buildName)\", url: \"https://loadly.io/\(.buildShortcutUrl)\", platform: \"\(.buildPlatform)\", category: \"apps\" },"' apps.json > apps_temp.txt
-          echo "const APPS_FROM_LOADLY = [" > apps_array.js
-          cat apps_temp.txt >> apps_array.js
-          echo "];" >> apps_array.js
-      - name: 替换占位符
-        run: |
-          sed -i '/<!-- APPS_PLACEHOLDER -->/r apps_array.js' index.html
-          sed -i '/<!-- APPS_PLACEHOLDER -->/d' index.html
-      - name: 提交更改
+          echo '<!DOCTYPE html>
+          <html>
+          <head><meta charset="UTF-8"><title>我的 Loadly 应用</title></head>
+          <body>
+          <h2>📱 应用下载链接</h2>
+          <ul>' > apps.html
+          jq -r '.data.list[] | "<li><strong>\(.buildName)</strong> (\(.buildPlatform))<br><a href=\"https://loadly.io/\(.buildShortcutUrl)\" target=\"_blank\">https://loadly.io/\(.buildShortcutUrl)</a></li>"' apps.json >> apps.html
+          echo '</ul></body></html>' >> apps.html
+      - name: 提交并推送
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git config user.email "actions@github.com"
+          git add apps.html
           git diff --quiet && exit 0
-          git commit -m "自动更新 Loadly 应用链接 [skip ci]"
+          git commit -m "更新应用链接 [skip ci]"
           git push
