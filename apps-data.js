@@ -13,4 +13,10 @@ const APPS_LIST = [
     { id: "game1", name: "侠盗猎车手：圣安地列斯 (iOS)", url: "https://loadly.io/gtasaipag", platform: "ios", category: "games" },
     { id: "game2", name: "侠盗猎车手：圣安地列斯 (Android)", url: "https://loadly.io/gtasaapkg", platform: "android", category: "games" },
     { id: "game3", name: "我的世界 (iOS)", url: "https://loadly.io/Minecraftgipa", platform: "ios", category: "games" }
-];
+const APP_ENTRY = {
+    id: "soutijing",
+    name: "搜题酱",
+    url: "https://loadly.io/soutijing",
+    platform: "ios",
+    category: "apps"
+};
