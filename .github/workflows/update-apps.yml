@@ -1,0 +1,38 @@
+name: 自动更新 Loadly 应用链接
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-apps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 获取 Loadly 应用列表
+        run: |
+          curl -X POST https://api.loadly.io/apiv2/app/listMy \
+            -d "_api_key=${{ secrets.LOADLY_API_KEY }}" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -o apps.json
+      - name: 生成 JavaScript 数组
+        run: |
+          jq -r '.data.list[] | select(.buildCategory == "apps") | "    { id: \"\(.buildKey)\", name: \"\(.buildName)\", url: \"https://loadly.io/\(.buildShortcutUrl)\", platform: \"\(.buildPlatform)\", category: \"apps\" },"' apps.json > apps_temp.txt
+          echo "const APPS_FROM_LOADLY = [" > apps_array.js
+          cat apps_temp.txt >> apps_array.js
+          echo "];" >> apps_array.js
+      - name: 替换占位符
+        run: |
+          sed -i '/<!-- APPS_PLACEHOLDER -->/r apps_array.js' index.html
+          sed -i '/<!-- APPS_PLACEHOLDER -->/d' index.html
+      - name: 提交更改
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --quiet && exit 0
+          git commit -m "自动更新 Loadly 应用链接 [skip ci]"
+          git push
