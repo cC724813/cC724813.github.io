@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>APP store · 本地歌单播放</title>
+    <style>
+        /* ===== 基础样式 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #0a0a0c;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 16px 12px 0px;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding-bottom: 100px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: background-color 0.3s;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .logo-icon.ios-theme {
+            background: #1e88e5;
+            box-shadow: 0 4px 12px rgba(30, 136, 229, 0.4);
+        }
+
+        .logo-icon.android-theme {
+            background: #4CAF50;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .mini-player {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #1c1c1e;
+            border: 2px solid #3a3a3c;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .mini-player img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .mini-player:active {
+            transform: scale(0.95);
+        }
+        .mini-player .play-pulse {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            animation: pulse 1.5s infinite;
+            pointer-events: none;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-bar {
+            background: #1c1c1e;
+            border: 1px solid #2c2c2e;
+            border-radius: 30px;
+            padding: 6px 6px 6px 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .search-bar span {
+            font-size: 18px;
+            color: #888;
+            flex-shrink: 0;
+        }
+
+        .search-bar input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            flex: 1 1 150px;
+            outline: none;
+            padding: 8px 0;
+            min-width: 120px;
+            -webkit-appearance: none;
+            border-radius: 0;
+        }
+
+        .search-bar input::placeholder {
+            color: #555;
+        }
+
+        .search-cancel {
+            background: #2c2c2e;
+            border: none;
+            color: #aaa;
+            font-size: 14px;
+            padding: 6px 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            border: 0.5px solid #3a3a3c;
+            flex-shrink: 0;
+            margin-left: auto;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .search-cancel:active {
+            background: #3a3a3c;
+            color: white;
+        }
+
+        @media (max-width: 360px) {
+            .search-bar {
+                padding: 6px 6px 6px 12px;
+            }
+            .search-bar input {
+                min-width: 100px;
+                font-size: 14px;
+            }
+            .search-cancel {
+                padding: 6px 10px;
+                font-size: 13px;
+            }
+        }
+
+        .apps-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            margin-top: 4px;
+            padding-bottom: 20px;
+        }
+
+        .app-card {
+            background: #1c1c1e;
+            border-radius: 24px;
+            padding: 16px;
+            border: 1px solid #2c2c2e;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.2s;
+        }
+
+        .app-card:active {
+            background: #2c2c2e;
+            transform: scale(0.99);
+        }
+
+        .app-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            background: #2c2c2e;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            border: 2px solid #3a3a3c;
+            color: #aaa;
+            overflow: hidden;
+        }
+
+        .app-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .app-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .app-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .app-platform {
+            font-size: 12px;
+            background: #2c2c2e;
+            padding: 3px 10px;
+            border-radius: 20px;
+            color: #aaa;
+            display: inline-block;
+            border: 0.5px solid #3a3a3c;
+        }
+
+        .app-url-preview {
+            font-size: 12px;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+            margin-bottom: 8px;
+        }
+
+        .download-badge {
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            background: #1e88e5;
+            box-shadow: 0 2px 8px rgba(30, 136, 229, 0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .download-badge.android-theme { background: #4CAF50; }
+        .download-badge:active { transform: scale(0.96); }
+
+        .book-card {
+            background: #1c1c1e;
+            border-radius: 18px;
+            padding: 16px 20px;
+            border: 1px solid #2c2c2e;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        .book-card:active {
+            background: #2c2c2e;
+            transform: scale(0.98);
+        }
+        .book-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: white;
+            flex: 1;
+        }
+        .book-read-badge {
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 18px;
+            border-radius: 30px;
+            background: #1e88e5;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .book-read-badge.android-theme {
+            background: #4CAF50;
+        }
+        .book-read-badge:active {
+            transform: scale(0.96);
+        }
+
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+        .fullscreen-overlay iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        .float-close {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            font-size: 24px;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.2s;
+        }
+        .float-close.ios-theme {
+            background: rgba(30, 136, 229, 0.8);
+        }
+        .float-close.android-theme {
+            background: rgba(76, 175, 80, 0.8);
+        }
+        .float-close:active {
+            transform: scale(0.95);
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .music-section { width: 100%; }
+        .daily-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 16px 0 12px;
+        }
+        .daily-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+        }
+        .refresh-daily {
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            color: #aaa;
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .refresh-daily:active {
+            background: #3a3a3c;
+            color: white;
+        }
+        .music-item {
+            background: #1c1c1e;
+            border: 1px solid #2c2c2e;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .music-item:active {
+            background: #2c2c2e;
+            transform: scale(0.99);
+        }
+        .music-cover {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: #2c2c2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: #888;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .music-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .music-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .music-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .music-artist {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            background: #1c1c1e;
+            border-radius: 16px;
+            border: 1px solid #2c2c2e;
+            margin-top: 20px;
+        }
+        .empty-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #555;
+            background: #1c1c1e;
+            border-radius: 16px;
+            border: 2px dashed #2c2c2e;
+            margin-top: 20px;
+            font-size: 15px;
+        }
+        .floating-player {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 400px;
+            background: rgba(28, 28, 30, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 12px;
+            z-index: 150;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            display: none;
+        }
+        .floating-player.show { display: block; }
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .now-playing-info {
+            flex: 1;
+        }
+        .now-playing-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+        .now-playing-artist {
+            font-size: 11px;
+            color: #888;
+        }
+        .zoom-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            width: 32px;
+            height: 32px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .zoom-btn:active {
+            transform: scale(0.92);
+            background: rgba(255,255,255,0.3);
+        }
+        .close-player {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 8px;
+        }
+        .lyrics-scroll-container {
+            height: 96px;
+            overflow-y: auto;
+            margin: 6px 0 8px;
+            padding: 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid #3a3a3c;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            line-height: 32px;
+        }
+        .lyric-line {
+            text-align: center;
+            padding: 0;
+            color: #aaa;
+            font-size: 12px;
+            transition: all 0.2s;
+            line-height: 32px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            height: 32px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .lyric-line.active.ios-theme { color: #1e88e5; font-size: 14px; font-weight: 600; }
+        .lyric-line.active.android-theme { color: #4CAF50; font-size: 14px; font-weight: 600; }
+        .audio-wrapper audio { width: 100%; height: 40px; border-radius: 20px; background: #2c2c2e; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 360px;
+            background: rgba(28, 28, 30, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            padding: 6px 4px;
+            z-index: 100;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: #8e8e93;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 0;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 60px;
+            gap: 2px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .nav-item.active { color: white; }
+        .nav-item.active.ios-theme { background: rgba(30, 136, 229, 0.2); }
+        .nav-item.active.android-theme { background: rgba(76, 175, 80, 0.2); }
+        .nav-item i { font-size: 20px; font-style: normal; }
+        
+        .game-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: #000;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            touch-action: none;
+        }
+        .game-overlay.show { display: flex; }
+        .game-header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e1e1e;
+            padding: 12px 24px;
+            border-radius: 60px;
+            margin-bottom: 16px;
+            border: 1px solid #3a3a3c;
+        }
+        .game-title { color: #ffd966; font-size: 1.8rem; font-weight: bold; letter-spacing: 2px; }
+        .game-close { background: #3a3a3c; border: none; color: white; font-size: 32px; width: 60px; height: 60px; border-radius: 40px; cursor: pointer; line-height: 1; }
+        .game-canvas-wrapper {
+            background: #1a2a32;
+            border-radius: 28px;
+            border: 3px solid #2c3e50;
+            overflow: hidden;
+            width: 100%;
+            max-width: 1000px;
+            aspect-ratio: 800 / 300;
+        }
+        canvas { display: block; width: 100%; height: 100%; image-rendering: crisp-edges; background: #fefefe; }
+        
+        .reader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0c;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+        .reader-header {
+            background: #1c1c1e;
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            border-bottom: 1px solid #2c2c2e;
+        }
+        .reader-back {
+            background: transparent;
+            border: 1px solid #3a3a3c;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .reader-back:active {
+            background: #2c2c2e;
+        }
+        .reader-title {
+            font-size: 1rem;
+            font-weight: 500;
+            flex: 1;
+            text-align: center;
+            color: #fff;
+        }
+        .progress-info {
+            font-size: 0.7rem;
+            background: #2c2c2e;
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: #ccc;
+        }
+        .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            font-size: 17px;
+            line-height: 1.65;
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #ddd;
+            background: #0f0f12;
+            -webkit-overflow-scrolling: touch;
+        }
+        .retry-btn {
+            background: #e67e22;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .movie-card {
+            background: #1c1c1e;
+            border-radius: 24px;
+            padding: 28px 16px;
+            text-align: center;
+            border: 1px solid #2c2c2e;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .movie-card:active {
+            background: #2c2c2e;
+            transform: scale(0.99);
+        }
+        .movie-title {
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .movie-player-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 1100;
+            display: none;
+            flex-direction: column;
+        }
+        .movie-player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #1c1c1e;
+            border-bottom: 1px solid #2c2c2e;
+            flex-shrink: 0;
+        }
+        .movie-back-btn {
+            background: transparent;
+            border: 1px solid #3a3a3c;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .movie-back-btn:active {
+            background: #2c2c2e;
+        }
+        .movie-title-header {
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .movie-video-wrapper {
+            flex: 1;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .movie-video-wrapper video {
+            width: 100%;
+            height: auto;
+            max-height: 60vh;
+            object-fit: contain;
+        }
+        .movie-episodes-area {
+            background: #1c1c1e;
+            padding: 16px 20px;
+            border-top: 1px solid #2c2c2e;
+            flex-shrink: 0;
+        }
+        .movie-episodes-label {
+            color: #aaa;
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+        }
+        .movie-episodes-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .movie-episode-btn {
+            background: #2c2c2e;
+            border: none;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .movie-episode-btn.ios-theme { background: #1e88e5; }
+        .movie-episode-btn.android-theme { background: #4CAF50; }
+        .movie-episode-btn:active { opacity: 0.8; }
+        
+        /* 移除导入相关样式 */
+        .import-area { display: none; }
+        /* 封面加载占位动画 */
+        .music-cover .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #555;
+            border-top-color: #1db954;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-area">
+                <div class="logo-icon" id="logoIcon">C</div>
+                <div class="logo-text">APP store</div>
+            </div>
+            <div class="header-right">
+                <div class="mini-player" id="miniPlayer">
+                    <img id="miniPlayerImg" src="" alt="cover">
+                    <div class="play-pulse"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-bar" id="searchBar">
+            <span>🔍</span>
+            <input type="text" id="searchInput" placeholder="搜索当前分区..." autocomplete="off">
+            <button class="search-cancel" id="searchCancelBtn">取消</button>
+        </div>
+
+        <div class="apps-grid" id="appsGrid"></div>
+    </div>
+
+    <div class="bottom-nav" id="bottomNav">
+        <button class="nav-item active" data-cat="apps"><i>📱</i> 应用</button>
+        <button class="nav-item" data-cat="games"><i>🎮</i> 游戏</button>
+        <button class="nav-item" data-cat="movies"><i>🎬</i> 电影</button>
+        <button class="nav-item" data-cat="music"><i>🎵</i> 音乐</button>
+        <button class="nav-item" data-cat="books"><i>📚</i> 图书</button>
+    </div>
+
+    <div id="downloadOverlay" class="fullscreen-overlay">
+        <iframe id="downloadIframe" src="about:blank"></iframe>
+        <div id="closeDownload" class="float-close">✕</div>
+    </div>
+
+    <div class="floating-player" id="floatingPlayer">
+        <div class="player-header">
+            <div class="now-playing-info">
+                <div class="now-playing-title" id="playerTitle">请选择歌曲</div>
+                <div class="now-playing-artist" id="playerArtist"></div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="zoom-btn" id="zoomBtn">−</button>
+                <button class="close-player" id="closePlayerBtn">✕</button>
+            </div>
+        </div>
+        <div class="lyrics-scroll-container" id="lyricsContainer">
+            <div class="no-lyric">暂无歌词</div>
+        </div>
+        <div class="audio-wrapper">
+            <audio id="audioPlayer" controls controlslist="nodownload"></audio>
+        </div>
+    </div>
+
+    <div class="game-overlay" id="gameOverlay">
+        <div class="game-header">
+            <span class="game-title">🦖 像素冲刺</span>
+            <button class="game-close" id="closeGameBtn">✕</button>
+        </div>
+        <div class="game-canvas-wrapper">
+            <canvas id="gameCanvas" width="800" height="300"></canvas>
+        </div>
+    </div>
+
+    <div id="readerOverlay" class="reader-overlay">
+        <div class="reader-header">
+            <button class="reader-back" id="closeReaderBtn">←返回</button>
+            <div class="reader-title" id="readerTitle">加载中...</div>
+            <div class="progress-info" id="progressInfo">0%</div>
+        </div>
+        <div class="scroll-content" id="scrollContent"></div>
+    </div>
+
+    <div id="moviePlayerOverlay" class="movie-player-overlay">
+        <div class="movie-player-header">
+            <button class="movie-back-btn" id="closeMovieBtn">←返回</button>
+            <span class="movie-title-header" id="moviePlayerTitle">视频播放器</span>
+        </div>
+        <div class="movie-video-wrapper">
+            <video id="movieVideo" preload="auto" playsinline webkit-playsinline controls></video>
+        </div>
+        <div class="movie-episodes-area" id="movieEpisodesArea" style="display:none;">
+            <div class="movie-episodes-label">📺 选集</div>
+            <div class="movie-episodes-grid" id="movieEpisodesGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initApp);
+            } else {
+                initApp();
+            }
+
+            function initApp() {
+                function detectDevice() {
+                    var ua = navigator.userAgent || navigator.vendor || window.opera;
+                    if (/android/i.test(ua)) return 'android';
+                    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'ios';
+                    return 'ios';
+                }
+                
+                var deviceType = detectDevice();
+                var themeClass = deviceType === 'android' ? 'android-theme' : 'ios-theme';
+                var devicePlatform = deviceType;
+                var PLATFORM_SPECIFIC_CATEGORIES = ['apps', 'games'];
+
+                function applyTheme() {
+                    var logoIcon = document.getElementById('logoIcon');
+                    if (logoIcon) logoIcon.classList.add(themeClass);
+                    var closeDownload = document.getElementById('closeDownload');
+                    if (closeDownload) closeDownload.classList.add(themeClass);
+                }
+
+                // ==================== 应用/游戏数据（保持不变） ====================
+                var apps = [];
+                function loadAppsFromData() {
+                    return new Promise(function(resolve) {
+                        var script = document.createElement('script');
+                        script.src = 'apps-data.js';
+                        script.onload = function() {
+                            if (typeof APPS_LIST !== 'undefined') {
+                                apps = APPS_LIST.map(function(item) {
+                                    return {
+                                        id: item.i,
+                                        name: item.n,
+                                        url: 'https://loadly.io/' + item.u,
+                                        platform: item.p === 'i' ? 'ios' : 'android',
+                                        category: item.c === 'a' ? 'apps' : 'games',
+                                        icon: item.icon || null
+                                    };
+                                });
+                            }
+                            resolve();
+                        };
+                        script.onerror = function() { resolve(); };
+                        document.head.appendChild(script);
+                    });
+                }
+
+                // ==================== 图书数据（保持不变） ====================
+                var txtBooks = [];
+                var txtBooksLoaded = false;
+                function loadTxtBooks() {
+                    return new Promise(function(resolve) {
+                        if (txtBooksLoaded) { resolve(); return; }
+                        var script = document.createElement('script');
+                        script.src = 'txt.js';
+                        script.onload = function() {
+                            if (typeof TXT_BOOKS !== 'undefined') {
+                                txtBooks = TXT_BOOKS.map(function(item) {
+                                    return { id: item.i, name: item.n, url: 'https://loadly.io/' + item.u };
+                                });
+                                txtBooksLoaded = true;
+                            }
+                            resolve();
+                        };
+                        script.onerror = function() { resolve(); };
+                        document.head.appendChild(script);
+                    });
+                }
+
+                function mergeUserApps() {
+                    try { 
+                        var saved = localStorage.getItem('appstore_apps_data'); 
+                        if (saved) {
+                            var parsed = JSON.parse(saved);
+                            if (Array.isArray(parsed) && parsed.length) {
+                                var urlMap = {};
+                                for (var i = 0; i < apps.length; i++) urlMap[apps[i].url] = true;
+                                for (var i = 0; i < parsed.length; i++) {
+                                    if (!urlMap[parsed[i].url]) {
+                                        apps.push(parsed[i]);
+                                        urlMap[parsed[i].url] = true;
+                                    }
+                                }
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                // ==================== 电影数据（保持不变） ====================
+                var movieData = [];
+                function loadMovieData() {
+                    return new Promise(function(resolve) {
+                        var script = document.createElement('script');
+                        script.src = 'movie.js';
+                        script.onload = function() {
+                            if (typeof MOVIE_DATA !== 'undefined') movieData = MOVIE_DATA;
+                            resolve();
+                        };
+                        script.onerror = function() { resolve(); };
+                        document.head.appendChild(script);
+                    });
+                }
+
+                // ==================== 音乐分区：从仓库加载 music.js ====================
+                var PLAYLIST = [];
+                var currentSong = null;
+                var currentLyrics = [];
+                var isSynced = false;
+                var audioPlayer = document.getElementById('audioPlayer');
+                var lyricsContainer = document.getElementById('lyricsContainer');
+                var playerTitle = document.getElementById('playerTitle');
+                var playerArtist = document.getElementById('playerArtist');
+                var floatingPlayer = document.getElementById('floatingPlayer');
+                var miniPlayer = document.getElementById('miniPlayer');
+                var miniPlayerImg = document.getElementById('miniPlayerImg');
+                var zoomBtn = document.getElementById('zoomBtn');
+                var closePlayerBtn = document.getElementById('closePlayerBtn');
+                var isZoomedOut = false;
+                var currentCoverUrl = '';
+
+                // 封面缓存
+                var coverCache = {};
+
+                // 从歌单中随机取N首
+                function getRandomSongs(count) {
+                    if (!PLAYLIST.length) return [];
+                    var shuffled = PLAYLIST.slice().sort(() => Math.random() - 0.5);
+                    return shuffled.slice(0, count);
+                }
+
+                // 模糊搜索（包含关键字）
+                function searchPlaylist(keyword) {
+                    if (!PLAYLIST.length) return [];
+                    var kw = keyword.trim().toLowerCase();
+                    return PLAYLIST.filter(s => 
+                        s.title.toLowerCase().includes(kw) || 
+                        (s.artist && s.artist.toLowerCase().includes(kw))
+                    );
+                }
+
+                // ==================== 从Loadly获取直链 ====================
+                function getLoadlyUrl(id) {
+                    if (!id) return null;
+                    if (id.startsWith('http://') || id.startsWith('https://')) {
+                        return id;
+                    }
+                    return 'https://loadly.io/' + id;
+                }
+
+                async function fetchLoadlyPage(url) {
+                    const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    return await resp.text();
+                }
+
+                function extractDownloadUrl(html) {
+                    const patterns = [
+                        /https:\/\/app-storage\.loadly\.io\/[^\s"']+/i,
+                        /https:\/\/[a-z0-9]+\.loadly\.io\/[^\s"']+/i,
+                        /https:\/\/[^\s"']+\.(mp3|txt|lrc)[^\s"']*/i
+                    ];
+                    for (const pattern of patterns) {
+                        const match = html.match(pattern);
+                        if (match) return match[0];
+                    }
+                    return null;
+                }
+
+                // ==================== 核心改进：只下载MP3开头2MB提取封面 ====================
+                function extractCoverFromID3(arrayBuffer) {
+                    const data = new Uint8Array(arrayBuffer);
+                    if (data.length < 10) return null;
+                    if (String.fromCharCode(data[0], data[1], data[2]) !== 'ID3') return null;
+                    const size = ((data[6] & 0x7F) << 21) | ((data[7] & 0x7F) << 14) | ((data[8] & 0x7F) << 7) | (data[9] & 0x7F);
+                    let pos = 10;
+                    const end = Math.min(pos + size, data.length);
+                    while (pos + 10 <= end) {
+                        const frameId = String.fromCharCode(data[pos], data[pos + 1], data[pos + 2], data[pos + 3]);
+                        const frameSize = (data[pos + 4] << 24) | (data[pos + 5] << 16) | (data[pos + 6] << 8) | data[pos + 7];
+                        if (frameSize === 0) break;
+                        const start = pos + 10;
+                        const frameEnd = Math.min(start + frameSize, data.length);
+                        if (frameId === 'APIC') {
+                            let idx = start;
+                            idx++;
+                            while (idx < frameEnd && data[idx] !== 0) idx++;
+                            idx++;
+                            idx++;
+                            while (idx < frameEnd && data[idx] !== 0) idx++;
+                            idx++;
+                            const imageData = data.slice(idx, frameEnd);
+                            if (imageData.length > 100) {
+                                let mimeType = 'image/jpeg';
+                                if (imageData[0] === 0x89 && imageData[1] === 0x50 && imageData[2] === 0x4E && imageData[3] === 0x47) {
+                                    mimeType = 'image/png';
+                                } else if (imageData[0] === 0x47 && imageData[1] === 0x49 && imageData[2] === 0x46) {
+                                    mimeType = 'image/gif';
+                                }
+                                const blob = new Blob([imageData], { type: mimeType });
+                                return URL.createObjectURL(blob);
+                            }
+                        }
+                        pos += 10 + frameSize;
+                    }
+                    return null;
+                }
+
+                // 流式读取MP3前2MB
+                async function fetchFirstBytes(url, maxBytes = 2097152) {
+                    const response = await fetch(url, {
+                        headers: { 'User-Agent': 'Mozilla/5.0' }
+                    });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    const reader = response.body.getReader();
+                    const chunks = [];
+                    let received = 0;
+                    while (received < maxBytes) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                        received += value.length;
+                        if (received >= maxBytes) {
+                            await reader.cancel();
+                            break;
+                        }
+                    }
+                    const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
+                    const combined = new Uint8Array(totalLength);
+                    let offset = 0;
+                    for (const chunk of chunks) {
+                        combined.set(chunk, offset);
+                        offset += chunk.length;
+                    }
+                    return combined.buffer;
+                }
+
+                // 新封面提取函数：从分享链接 → 提取MP3直链 → 读取前2MB → 提取封面
+                async function fetchCoverFromLoadlyPage(shareUrl) {
+                    if (coverCache[shareUrl]) return coverCache[shareUrl];
+                    try {
+                        // 1. 获取分享页HTML
+                        const html = await fetchLoadlyPage(shareUrl);
+                        // 2. 提取MP3直链
+                        const mp3Url = extractDownloadUrl(html);
+                        if (!mp3Url) {
+                            coverCache[shareUrl] = null;
+                            return null;
+                        }
+                        // 3. 只读取前2MB
+                        const arrayBuffer = await fetchFirstBytes(mp3Url, 2097152);
+                        // 4. 提取封面
+                        const coverUrl = extractCoverFromID3(arrayBuffer);
+                        coverCache[shareUrl] = coverUrl || null;
+                        return coverUrl || null;
+                    } catch(e) {
+                        console.warn('提取封面失败:', shareUrl, e);
+                        coverCache[shareUrl] = null;
+                        return null;
+                    }
+                }
+
+                // 加载所有封面
+                function loadCoversForItems(containerSelector) {
+                    var items = document.querySelectorAll(containerSelector + ' .music-item');
+                    items.forEach(function(el) {
+                        var mp3 = el.dataset.mp3;
+                        var coverDiv = el.querySelector('.music-cover');
+                        if (!coverDiv) return;
+                        if (coverDiv.querySelector('img') || coverDiv.querySelector('.loading-spinner')) return;
+                        
+                        coverDiv.innerHTML = '<div class="loading-spinner"></div>';
+                        
+                        (async function() {
+                            var coverUrl = await fetchCoverFromLoadlyPage(mp3);
+                            if (coverUrl) {
+                                coverDiv.innerHTML = `<img src="${coverUrl}" onerror="this.style.display='none';this.parentNode.innerHTML='🎵';">`;
+                            } else {
+                                coverDiv.innerHTML = '🎵';
+                            }
+                        })();
+                    });
+                }
+
+                // ==================== 歌词解析 ====================
+                function parseLRC(text) {
+                    if (!text) return { lines: [], isSynced: false };
+                    const lines = text.split(/\r?\n/);
+                    const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)/;
+                    const result = [];
+                    let hasTime = false;
+                    for (const line of lines) {
+                        const match = line.match(timeRegex);
+                        if (match) {
+                            hasTime = true;
+                            const min = parseInt(match[1], 10);
+                            const sec = parseInt(match[2], 10);
+                            let ms = match[3] ? parseInt(match[3], 10) : 0;
+                            if (match[3] && match[3].length === 2) ms *= 10;
+                            const time = min * 60 + sec + ms / 1000;
+                            const textContent = match[4].trim();
+                            if (textContent) result.push({ time, text: textContent });
+                        } else if (line.trim() && !hasTime) {
+                            result.push({ time: -1, text: line.trim() });
+                        }
+                    }
+                    result.sort((a, b) => a.time - b.time);
+                    return { lines: result, isSynced: hasTime };
+                }
+
+                function displayLyrics(text, audioElement) {
+                    if (!text) {
+                        lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 无歌词</div>';
+                        return;
+                    }
+                    const parsed = parseLRC(text);
+                    currentLyrics = parsed.lines;
+                    isSynced = parsed.isSynced;
+                    if (currentLyrics.length === 0) {
+                        lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 无歌词内容</div>';
+                        return;
+                    }
+                    let html = '';
+                    for (let i = 0; i < currentLyrics.length; i++) {
+                        const line = currentLyrics[i];
+                        const dataTime = line.time >= 0 ? `data-time="${line.time}"` : '';
+                        const clickableClass = line.time >= 0 ? 'clickable' : '';
+                        html += `<div class="lyric-line ${clickableClass}" ${dataTime}>${escapeHtml(line.text)}</div>`;
+                    }
+                    lyricsContainer.innerHTML = html;
+
+                    if (isSynced && audioElement) {
+                        document.querySelectorAll('.lyric-line.clickable').forEach(el => {
+                            el.addEventListener('click', function() {
+                                const t = parseFloat(this.dataset.time);
+                                if (!isNaN(t) && t >= 0) {
+                                    audioElement.currentTime = t;
+                                    updateHighlight(audioElement.currentTime);
+                                }
+                            });
+                        });
+                        audioElement.addEventListener('timeupdate', function() {
+                            updateHighlight(this.currentTime);
+                        });
+                        setTimeout(() => {
+                            const first = document.querySelector('.lyric-line.clickable');
+                            if (first) {
+                                document.querySelectorAll('.lyric-line').forEach(el => el.classList.remove('active'));
+                                first.classList.add('active', themeClass);
+                            }
+                        }, 200);
+                    }
+                }
+
+                function updateHighlight(currentSec) {
+                    if (!isSynced || !currentLyrics.length) return;
+                    let activeIdx = -1;
+                    for (let i = 0; i < currentLyrics.length; i++) {
+                        if (currentLyrics[i].time >= 0 && currentLyrics[i].time <= currentSec) {
+                            activeIdx = i;
+                        } else if (currentLyrics[i].time > currentSec) {
+                            break;
+                        }
+                    }
+                    const linesDom = document.querySelectorAll('.lyric-line');
+                    linesDom.forEach((el, idx) => {
+                        el.classList.remove('active', 'ios-theme', 'android-theme');
+                        if (idx === activeIdx && activeIdx >= 0) {
+                            el.classList.add('active', themeClass);
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    });
+                }
+
+                // ==================== 播放歌曲（已优化：播放时也从MP3提取封面） ====================
+                async function playSong(song) {
+                    if (!song) return;
+                    currentSong = song;
+                    playerTitle.textContent = song.title;
+                    playerArtist.textContent = song.artist || '未知歌手';
+                    floatingPlayer.classList.add('show');
+                    if (isZoomedOut) zoomIn();
+
+                    lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">⏳ 加载中...</div>';
+                    try {
+                        const mp3FullUrl = getLoadlyUrl(song.mp3);
+                        const html = await fetchLoadlyPage(mp3FullUrl);
+                        const mp3Url = extractDownloadUrl(html);
+                        if (!mp3Url) throw new Error('未找到MP3直链');
+
+                        // 直接播放完整MP3
+                        audioPlayer.src = mp3Url;
+                        audioPlayer.load();
+                        audioPlayer.play().catch(() => {});
+
+                        // 从MP3开头提取封面（只读2MB）
+                        const arrayBuffer = await fetchFirstBytes(mp3Url, 2097152);
+                        const coverUrl = extractCoverFromID3(arrayBuffer);
+                        if (coverUrl) {
+                            currentCoverUrl = coverUrl;
+                            miniPlayerImg.src = coverUrl;
+                            miniPlayer.style.display = 'flex';
+                        } else {
+                            miniPlayer.style.display = 'none';
+                        }
+
+                        // 加载歌词
+                        if (song.lyric) {
+                            const lyricFullUrl = getLoadlyUrl(song.lyric);
+                            const lyricHtml = await fetchLoadlyPage(lyricFullUrl);
+                            const lyricUrl = extractDownloadUrl(lyricHtml);
+                            if (lyricUrl) {
+                                const lyricResp = await fetch(lyricUrl);
+                                const lyricText = await lyricResp.text();
+                                if (lyricText && lyricText.trim().length > 0) {
+                                    displayLyrics(lyricText, audioPlayer);
+                                } else {
+                                    lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 歌词文件为空</div>';
+                                }
+                            } else {
+                                lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 未找到歌词文件</div>';
+                            }
+                        } else {
+                            lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 未配置歌词</div>';
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        lyricsContainer.innerHTML = `<div class="lyric-line empty-hint" style="text-align:center;color:#ff4444;">❌ ${escapeHtml(error.message)}</div>`;
+                    }
+                }
+
+                // ==================== 迷你播放器控制 ====================
+                function zoomOut() {
+                    floatingPlayer.classList.remove('show');
+                    if (currentCoverUrl) {
+                        miniPlayer.style.display = 'flex';
+                    }
+                    isZoomedOut = true;
+                }
+                function zoomIn() {
+                    miniPlayer.style.display = 'none';
+                    floatingPlayer.classList.add('show');
+                    isZoomedOut = false;
+                }
+                function toggleZoom() {
+                    if (isZoomedOut) {
+                        zoomIn();
+                    } else {
+                        zoomOut();
+                    }
+                }
+                if (zoomBtn) zoomBtn.addEventListener('click', toggleZoom);
+                if (miniPlayer) miniPlayer.addEventListener('click', zoomIn);
+                if (closePlayerBtn) closePlayerBtn.addEventListener('click', function() {
+                    audioPlayer.pause();
+                    floatingPlayer.classList.remove('show');
+                    miniPlayer.style.display = 'none';
+                    isZoomedOut = false;
+                });
+
+                // ==================== 渲染音乐推荐 ====================
+                function renderRecommendations() {
+                    var dailyDiv = document.getElementById('daily-recommendations');
+                    if (!dailyDiv) return;
+                    var songs = getRandomSongs(10);
+                    if (songs.length === 0) {
+                        dailyDiv.innerHTML = '<div class="empty-message">📭 歌单为空</div>';
+                        return;
+                    }
+                    var html = '';
+                    songs.forEach(function(song) {
+                        html += `<div class="music-item" data-id="${song.id}" data-title="${escapeHtml(song.title)}" data-artist="${escapeHtml(song.artist)}" data-mp3="${song.mp3}" data-lyric="${song.lyric||''}">
+                            <div class="music-cover">🎵</div>
+                            <div class="music-info"><div class="music-title">${escapeHtml(song.title)}</div><div class="music-artist">${escapeHtml(song.artist)}</div></div>
+                        </div>`;
+                    });
+                    dailyDiv.innerHTML = html;
+                    dailyDiv.querySelectorAll('.music-item').forEach(el => {
+                        el.addEventListener('click', function() {
+                            var song = {
+                                id: this.dataset.id,
+                                title: this.dataset.title,
+                                artist: this.dataset.artist,
+                                mp3: this.dataset.mp3,
+                                lyric: this.dataset.lyric || null
+                            };
+                            playSong(song);
+                        });
+                    });
+                    loadCoversForItems('#daily-recommendations');
+                }
+
+                // ==================== 搜索功能 ====================
+                function performSearchMusic(keyword) {
+                    var container = document.getElementById('music-results-container');
+                    var dailyDiv = document.getElementById('daily-recommendations');
+                    if (!container) return;
+                    if (dailyDiv) dailyDiv.style.display = 'none';
+                    container.style.display = 'block';
+                    if (!keyword.trim()) {
+                        container.style.display = 'none';
+                        if (dailyDiv) dailyDiv.style.display = 'block';
+                        return;
+                    }
+                    var results = searchPlaylist(keyword);
+                    if (results.length === 0) {
+                        container.innerHTML = '<div class="empty-message">未找到相关歌曲</div>';
+                        return;
+                    }
+                    var html = '<div class="music-results-list">';
+                    results.forEach(function(song) {
+                        html += `<div class="music-item" data-id="${song.id}" data-title="${escapeHtml(song.title)}" data-artist="${escapeHtml(song.artist)}" data-mp3="${song.mp3}" data-lyric="${song.lyric||''}">
+                            <div class="music-cover">🎵</div>
+                            <div class="music-info"><div class="music-title">${escapeHtml(song.title)}</div><div class="music-artist">${escapeHtml(song.artist)}</div></div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                    container.querySelectorAll('.music-item').forEach(el => {
+                        el.addEventListener('click', function() {
+                            var song = {
+                                id: this.dataset.id,
+                                title: this.dataset.title,
+                                artist: this.dataset.artist,
+                                mp3: this.dataset.mp3,
+                                lyric: this.dataset.lyric || null
+                            };
+                            playSong(song);
+                        });
+                    });
+                    loadCoversForItems('#music-results-container');
+                }
+
+                // ==================== 加载 music.js 从仓库 ====================
+                async function loadMusicPlaylist() {
+                    try {
+                        const response = await fetch('music.js');
+                        if (!response.ok) throw new Error('无法加载 music.js');
+                        const scriptText = await response.text();
+                        const fn = new Function('window', 'console', `"use strict";\n${scriptText}\nreturn PLAYLIST;`);
+                        const result = fn(window, console);
+                        if (result && Array.isArray(result) && result.length > 0) {
+                            PLAYLIST = result;
+                            try { localStorage.setItem('music_playlist', JSON.stringify(PLAYLIST)); } catch(e) {}
+                            renderRecommendations();
+                        } else {
+                            throw new Error('歌单数据无效');
+                        }
+                    } catch (e) {
+                        console.warn('加载 music.js 失败，尝试从缓存恢复', e);
+                        try {
+                            var saved = localStorage.getItem('music_playlist');
+                            if (saved) {
+                                var parsed = JSON.parse(saved);
+                                if (Array.isArray(parsed) && parsed.length) {
+                                    PLAYLIST = parsed;
+                                    renderRecommendations();
+                                    return;
+                                }
+                            }
+                        } catch(ex) {}
+                        var dailyDiv = document.getElementById('daily-recommendations');
+                        if (dailyDiv) dailyDiv.innerHTML = '<div class="empty-message">❌ 歌单加载失败，请确保 music.js 存在</div>';
+                    }
+                }
+
+                // ==================== 音乐分区渲染 ====================
+                function renderMusicGrid() {
+                    var grid = document.getElementById('appsGrid');
+                    grid.innerHTML = `<div class="music-section">
+                        <div class="daily-header">
+                            <div class="daily-title">🎵 热门推荐</div>
+                            <button class="refresh-daily ${themeClass}" id="refreshDailyBtn">↻ 换一批</button>
+                        </div>
+                        <div id="daily-recommendations" class="loading">加载歌单...</div>
+                        <div id="music-results-container" style="display:none;"></div>
+                    </div>`;
+                    document.getElementById('refreshDailyBtn')?.addEventListener('click', function() {
+                        renderRecommendations();
+                    });
+                    loadMusicPlaylist();
+                }
+
+                // ==================== 其他分区渲染（完全保持不变） ====================
+                var grid = document.getElementById('appsGrid');
+                var navItems = document.querySelectorAll('.nav-item');
+                var searchInput = document.getElementById('searchInput');
+                var searchCancelBtn = document.getElementById('searchCancelBtn');
+                var logo = document.getElementById('logoIcon');
+                
+                var currentCategory = 'apps';
+                var currentSearchKeyword = '';
+
+                // 应用/游戏分区懒加载
+                var iconCache = {};
+                async function extractIconUrlFromDetailPage(detailUrl) {
+                    let normalizedUrl = detailUrl.trim();
+                    if (!normalizedUrl.startsWith('http')) {
+                        normalizedUrl = 'https://' + normalizedUrl;
+                    }
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    try {
+                        const response = await fetch(normalizedUrl, {
+                            signal: controller.signal,
+                            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+                        });
+                        clearTimeout(timeoutId);
+                        if (!response.ok) throw new Error();
+                        const html = await response.text();
+                        let imgSrc = null;
+                        let match = html.match(/src=["'](https?:\/\/loadly\.io\/image\/view\/app_icons\/[a-f0-9]+\/\d+)["']/i);
+                        if (match) {
+                            imgSrc = match[1];
+                        } else {
+                            match = html.match(/src=["'](\/image\/view\/app_icons\/[a-f0-9]+\/\d+)["']/i);
+                            if (match) {
+                                imgSrc = 'https://loadly.io' + match[1];
+                            }
+                        }
+                        if (!imgSrc) throw new Error();
+                        const idMatch = imgSrc.match(/\/app_icons\/([a-f0-9]+)\/\d+/i);
+                        if (!idMatch) throw new Error();
+                        return `https://loadly.io/image/view/app_icons/${idMatch[1]}/120`;
+                    } catch (e) {
+                        clearTimeout(timeoutId);
+                        return null;
+                    }
+                }
+
+                async function getAppIconUrl(app) {
+                    if (app.icon) return app.icon;
+                    if (iconCache[app.url]) return iconCache[app.url];
+                    const iconUrl = await extractIconUrlFromDetailPage(app.url);
+                    if (iconUrl) {
+                        iconCache[app.url] = iconUrl;
+                    }
+                    return iconUrl;
+                }
+
+                var currentBatchManager = {
+                    allItems: [],
+                    renderedCount: 0,
+                    batchSize: 4,
+                    isLoadingMore: false,
+                    scrollHandler: null,
+                    container: null
+                };
+
+                function resetBatchManager() {
+                    if (currentBatchManager.scrollHandler) {
+                        window.removeEventListener('scroll', currentBatchManager.scrollHandler);
+                        currentBatchManager.scrollHandler = null;
+                    }
+                    currentBatchManager.allItems = [];
+                    currentBatchManager.renderedCount = 0;
+                    currentBatchManager.isLoadingMore = false;
+                }
+
+                function handleDownloadClick(url, event) {
+                    if (event) event.stopPropagation();
+                    if (downloadIframe && downloadOverlay) {
+                        downloadIframe.src = url;
+                        downloadOverlay.style.display = 'flex';
+                    }
+                }
+
+                function renderAppCardsRange(items, startIndex, endIndex, container, themeClass) {
+                    for (let i = startIndex; i < endIndex && i < items.length; i++) {
+                        const app = items[i];
+                        const card = document.createElement('div');
+                        card.className = 'app-card';
+                        card.setAttribute('data-app-id', app.id);
+                        
+                        const iconDiv = document.createElement('div');
+                        iconDiv.className = 'app-icon';
+                        const iconInner = document.createElement('div');
+                        iconInner.style.cssText = 'width:60px;height:60px;overflow:hidden;border-radius:15px;display:flex;align-items:center;justify-content:center;background:#3a3a3c;';
+                        iconInner.id = `icon-${app.id}`;
+                        iconInner.innerHTML = '<div style="font-size:32px;color:#888;">📱</div>';
+                        iconDiv.appendChild(iconInner);
+                        
+                        const infoDiv = document.createElement('div');
+                        infoDiv.className = 'app-info';
+                        infoDiv.innerHTML = `
+                            <div class="app-name">${escapeHtml(app.name)} <span class="app-platform">${app.platform==='ios'?'iOS':'Android'}</span></div>
+                            <div class="app-url-preview">${app.url}</div>
+                            <div style="margin-top:6px;"><span class="download-badge ${themeClass}" data-url="${app.url}">下载</span></div>
+                        `;
+                        
+                        card.appendChild(iconDiv);
+                        card.appendChild(infoDiv);
+                        container.appendChild(card);
+                        
+                        const badge = card.querySelector('.download-badge');
+                        if (badge) {
+                            const url = badge.getAttribute('data-url');
+                            badge.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                handleDownloadClick(url, e);
+                            });
+                        }
+                        
+                        (async function(item, id) {
+                            const imgUrl = await getAppIconUrl(item);
+                            const iconContainer = document.getElementById(`icon-${id}`);
+                            if (iconContainer && imgUrl) {
+                                const img = document.createElement('img');
+                                img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:15px;';
+                                img.src = imgUrl;
+                                img.onerror = function() { 
+                                    this.style.display = 'none';
+                                    this.parentNode.innerHTML = '<div style="font-size:38px;">📱</div>';
+                                };
+                                iconContainer.innerHTML = '';
+                                iconContainer.appendChild(img);
+                            }
+                        })(app, app.id);
+                    }
+                }
+
+                function loadMoreApps() {
+                    if (currentBatchManager.isLoadingMore) return;
+                    if (currentBatchManager.renderedCount >= currentBatchManager.allItems.length) return;
+                    
+                    currentBatchManager.isLoadingMore = true;
+                    const start = currentBatchManager.renderedCount;
+                    const end = Math.min(start + currentBatchManager.batchSize, currentBatchManager.allItems.length);
+                    
+                    renderAppCardsRange(currentBatchManager.allItems, start, end, currentBatchManager.container, themeClass);
+                    currentBatchManager.renderedCount = end;
+                    currentBatchManager.isLoadingMore = false;
+                    
+                    if (currentBatchManager.renderedCount < currentBatchManager.allItems.length) {
+                        if (!currentBatchManager.scrollHandler) {
+                            const handler = function() {
+                                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                                const windowHeight = window.innerHeight;
+                                const docHeight = document.documentElement.scrollHeight;
+                                if (scrollTop + windowHeight >= docHeight - 300) {
+                                    loadMoreApps();
+                                }
+                            };
+                            window.addEventListener('scroll', handler);
+                            currentBatchManager.scrollHandler = handler;
+                        }
+                    } else {
+                        if (currentBatchManager.scrollHandler) {
+                            window.removeEventListener('scroll', currentBatchManager.scrollHandler);
+                            currentBatchManager.scrollHandler = null;
+                        }
+                    }
+                }
+
+                async function initLazyAppGrid(filteredApps) {
+                    if (!filteredApps.length) {
+                        grid.innerHTML = '<div class="empty-message">暂无文件</div>';
+                        return;
+                    }
+                    resetBatchManager();
+                    currentBatchManager.allItems = filteredApps;
+                    currentBatchManager.container = grid;
+                    currentBatchManager.renderedCount = 0;
+                    
+                    grid.innerHTML = '';
+                    
+                    const firstBatchEnd = Math.min(currentBatchManager.batchSize, filteredApps.length);
+                    renderAppCardsRange(filteredApps, 0, firstBatchEnd, grid, themeClass);
+                    currentBatchManager.renderedCount = firstBatchEnd;
+                    
+                    if (currentBatchManager.renderedCount < filteredApps.length) {
+                        const handler = function() {
+                            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                            const windowHeight = window.innerHeight;
+                            const docHeight = document.documentElement.scrollHeight;
+                            if (scrollTop + windowHeight >= docHeight - 300) {
+                                loadMoreApps();
+                            }
+                        };
+                        window.addEventListener('scroll', handler);
+                        currentBatchManager.scrollHandler = handler;
+                    }
+                }
+
+                // ==================== 电影分区（保持不变） ====================
+                function getFullUrl(shortUrl) {
+                    if (!shortUrl) return '';
+                    if (shortUrl.startsWith('http')) return shortUrl;
+                    return 'https://loadly.io/' + shortUrl;
+                }
+
+                async function extractDirectUrl(shareUrl, retry = 0) {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    try {
+                        const response = await fetch(shareUrl, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const html = await response.text();
+                        const patterns = [
+                            /https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.mp4[^"'\s]*/i,
+                            /https:\/\/[a-z0-9]+\.loadly\.io\/[a-f0-9]+\.mp4[^"'\s]*/i,
+                            /https:\/\/[^\s"']+\.mp4/i
+                        ];
+                        for (let pattern of patterns) {
+                            const match = html.match(pattern);
+                            if (match) return match[0];
+                        }
+                        const fileNameMatch = html.match(/([a-f0-9]{32,})\.mp4/i);
+                        if (fileNameMatch) return `https://app-storage.loadly.io/${fileNameMatch[1]}.mp4`;
+                        throw new Error('未找到视频直链');
+                    } catch (err) {
+                        clearTimeout(timeoutId);
+                        if (retry < 2) {
+                            await new Promise(r => setTimeout(r, 1000));
+                            return extractDirectUrl(shareUrl, retry + 1);
+                        }
+                        throw err;
+                    }
+                }
+
+                var currentMovieMedia = null;
+                var currentEpisodeIndex = 0;
+                var movieVideo = document.getElementById('movieVideo');
+                var movieOverlay = document.getElementById('moviePlayerOverlay');
+                var movieTitleSpan = document.getElementById('moviePlayerTitle');
+                var movieEpisodesArea = document.getElementById('movieEpisodesArea');
+                var movieEpisodesGrid = document.getElementById('movieEpisodesGrid');
+                var closeMovieBtn = document.getElementById('closeMovieBtn');
+
+                async function playMovieByShareUrl(shareUrl) {
+                    if (!movieVideo) return;
+                    try {
+                        const fullUrl = getFullUrl(shareUrl);
+                        const direct = await extractDirectUrl(fullUrl);
+                        movieVideo.src = direct;
+                        movieVideo.load();
+                        movieVideo.play().catch(e => console.log('自动播放被阻止'));
+                    } catch(e) {
+                        alert('播放失败: ' + e.message);
+                    }
+                }
+
+                function renderMovieEpisodes() {
+                    if (!currentMovieMedia || currentMovieMedia.type !== 'tv') {
+                        movieEpisodesArea.style.display = 'none';
+                        return;
+                    }
+                    movieEpisodesArea.style.display = 'block';
+                    movieEpisodesGrid.innerHTML = '';
+                    currentMovieMedia.episodes.forEach((ep, idx) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'movie-episode-btn';
+                        if (idx === currentEpisodeIndex) btn.classList.add(themeClass);
+                        btn.textContent = ep.name;
+                        btn.addEventListener('click', async () => {
+                            currentEpisodeIndex = idx;
+                            movieTitleSpan.textContent = `${currentMovieMedia.title} · ${ep.name}`;
+                            renderMovieEpisodes();
+                            await playMovieByShareUrl(ep.url);
+                        });
+                        movieEpisodesGrid.appendChild(btn);
+                    });
+                }
+
+                async function openMoviePlayer(mediaItem) {
+                    currentMovieMedia = mediaItem;
+                    currentEpisodeIndex = 0;
+                    if (movieVideo) {
+                        movieVideo.pause();
+                        movieVideo.src = '';
+                    }
+                    if (mediaItem.type === 'movie') {
+                        movieTitleSpan.textContent = mediaItem.title;
+                        movieEpisodesArea.style.display = 'none';
+                        await playMovieByShareUrl(mediaItem.episodes[0].url);
+                    } else {
+                        movieTitleSpan.textContent = `${mediaItem.title} · ${mediaItem.episodes[0].name}`;
+                        renderMovieEpisodes();
+                        await playMovieByShareUrl(mediaItem.episodes[0].url);
+                    }
+                    movieOverlay.style.display = 'flex';
+                }
+
+                function closeMoviePlayer() {
+                    if (movieVideo) movieVideo.pause();
+                    movieOverlay.style.display = 'none';
+                }
+                if (closeMovieBtn) closeMovieBtn.addEventListener('click', closeMoviePlayer);
+
+                function renderMoviesGrid(searchKeyword) {
+                    if (!movieData.length) {
+                        grid.innerHTML = '<div class="empty-message">🎬 暂无电影数据</div>';
+                        return;
+                    }
+                    let filtered = movieData;
+                    if (searchKeyword && searchKeyword.trim()) {
+                        const kw = searchKeyword.trim().toLowerCase();
+                        filtered = movieData.filter(m => m.title.toLowerCase().includes(kw));
+                    }
+                    if (filtered.length === 0) {
+                        grid.innerHTML = '<div class="empty-message">🎬 未找到相关影片</div>';
+                        return;
+                    }
+                    let html = '';
+                    filtered.forEach(movie => {
+                        html += `<div class="movie-card" data-id="${movie.id}"><div class="movie-title">${escapeHtml(movie.title)}</div></div>`;
+                    });
+                    grid.innerHTML = html;
+                    document.querySelectorAll('.movie-card').forEach(card => {
+                        const id = card.dataset.id;
+                        const movie = movieData.find(m => m.id === id);
+                        if (movie) card.addEventListener('click', () => openMoviePlayer(movie));
+                    });
+                }
+
+                // ==================== 图书分区（保持不变） ====================
+                var readerOverlay = document.getElementById('readerOverlay');
+                var closeReaderBtn = document.getElementById('closeReaderBtn');
+                var readerTitle = document.getElementById('readerTitle');
+                var progressInfoSpan = document.getElementById('progressInfo');
+                var scrollContainer = document.getElementById('scrollContent');
+                var currentBookId = null, saveTimeout = null, cancelDownload = false;
+
+                function saveProgress(bookId, percent) { try { const p = JSON.parse(localStorage.getItem('book_progress_scroll')||'{}'); p[bookId]=percent; localStorage.setItem('book_progress_scroll',JSON.stringify(p)); } catch(e){} }
+                function loadProgress(bookId) { try { return JSON.parse(localStorage.getItem('book_progress_scroll')||'{}')[bookId] || 0; } catch(e){ return 0; } }
+                function saveFullContent(bookId, content) { try { localStorage.setItem(`book_full_${bookId}`, content); } catch(e){} }
+                function getFullContent(bookId) { try { return localStorage.getItem(`book_full_${bookId}`); } catch(e){ return null; } }
+                async function getTxtDirectUrl(shareUrl, retry=0) {
+                    const c = new AbortController(); const t = setTimeout(()=>c.abort(),15000);
+                    try { const r = await fetch(shareUrl, {signal:c.signal}); clearTimeout(t); const html = await r.text(); const m = html.match(/https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.txt[^"'\s]*/); if(m) return m[0]; throw new Error('未找到直链'); } catch(e) { clearTimeout(t); if(retry<2) { await new Promise(r=>setTimeout(r,1000)); return getTxtDirectUrl(shareUrl, retry+1); } throw e; }
+                }
+                async function streamAndCache(book) { cancelDownload = false; const direct = await getTxtDirectUrl(book.url); const res = await fetch(direct); const reader = res.body.getReader(); const decoder = new TextDecoder(); let full = ''; while(true) { if(cancelDownload) break; const {done, value} = await reader.read(); if(done) break; full += decoder.decode(value, {stream:true}); } saveFullContent(book.id, full); return full; }
+                function updateProgressDisplay() { if(progressInfoSpan && scrollContainer) { const max = scrollContainer.scrollHeight - scrollContainer.clientHeight; progressInfoSpan.textContent = max>0 ? Math.floor(scrollContainer.scrollTop/max*100)+'%' : '0%'; }}
+                async function openBook(book) { readerOverlay.style.display = 'flex'; readerTitle.textContent = book.name; currentBookId = book.id; scrollContainer.innerHTML = '<div style="text-align:center;padding:40px;">📖 加载中...</div>'; try { let full = getFullContent(book.id) || await streamAndCache(book); scrollContainer.innerHTML = `<div style="white-space:pre-wrap;">${full.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>`; const pct = loadProgress(book.id); if(pct>0) scrollContainer.scrollTop = (pct/100)*(scrollContainer.scrollHeight-scrollContainer.clientHeight); updateProgressDisplay(); const handler = ()=>{ clearTimeout(saveTimeout); saveTimeout = setTimeout(()=>{ if(currentBookId) { const max = scrollContainer.scrollHeight-scrollContainer.clientHeight; saveProgress(currentBookId, max>0?scrollContainer.scrollTop/max*100:0); updateProgressDisplay(); } },200); }; scrollContainer.addEventListener('scroll', handler); window.currentCleanup = ()=> scrollContainer.removeEventListener('scroll', handler); } catch(e) { scrollContainer.innerHTML = `<div style="text-align:center;padding:40px;">❌ 加载失败<br><button class="retry-btn" onclick="openBook(txtBooks.find(b=>b.id==='${book.id}'))">重试</button></div>`; } }
+                function onExitReader() { if(window.currentCleanup) { window.currentCleanup(); window.currentCleanup=null; } readerOverlay.style.display = 'none'; scrollContainer.innerHTML = ''; cancelDownload = true; currentBookId = null; clearTimeout(saveTimeout); }
+                closeReaderBtn.addEventListener('click', onExitReader);
+                function renderBooksGrid(keyword) { var books = txtBooks; if(keyword) books = txtBooks.filter(b=> b.name.toLowerCase().includes(keyword.toLowerCase())); if(!books.length) { grid.innerHTML = '<div class="empty-message">📭 未找到相关小说</div>'; return; } var html = '<div class="books-section"><div class="daily-header"><div class="daily-title">📚 我的书架</div><div style="font-size:12px;color:#888;">共 '+books.length+' 本</div></div><div style="display:flex;flex-direction:column;gap:10px;">'; books.forEach(b=>{ html += `<div class="book-card" data-id="${b.id}"><div class="book-name">${escapeHtml(b.name)}</div><span class="book-read-badge ${themeClass}">开始阅读</span></div>`; }); html += '</div></div>'; grid.innerHTML = html; document.querySelectorAll('.book-card').forEach(card=>{ const bid = card.dataset.id; const book = txtBooks.find(b=>b.id===bid); const badge = card.querySelector('.book-read-badge'); const open = ()=> book && openBook(book); badge.addEventListener('click',(e)=>{ e.stopPropagation(); open(); }); card.addEventListener('click',(e)=>{ if(!e.target.classList.contains('book-read-badge')) open(); }); }); }
+
+                // ==================== 统一渲染 ====================
+                function renderGrid() {
+                    if (!grid) return;
+                    if (currentCategory === 'movies') { renderMoviesGrid(currentSearchKeyword); return; }
+                    if (currentCategory === 'music') {
+                        renderMusicGrid();
+                        return;
+                    }
+                    if (currentCategory === 'books') {
+                        if(!txtBooksLoaded) { grid.innerHTML = '<div class="empty-message">📖 加载小说列表中...</div>'; loadTxtBooks().then(()=> renderBooksGrid(currentSearchKeyword)); }
+                        else renderBooksGrid(currentSearchKeyword);
+                        return;
+                    }
+                    
+                    var filtered = apps.filter(a=> a.category===currentCategory && (PLATFORM_SPECIFIC_CATEGORIES.indexOf(currentCategory)===-1 || a.platform===devicePlatform));
+                    if (currentSearchKeyword && currentSearchKeyword.trim() !== '') {
+                        var kw = currentSearchKeyword.trim().toLowerCase();
+                        filtered = filtered.filter(app => app.name.toLowerCase().includes(kw));
+                    }
+                    initLazyAppGrid(filtered);
+                }
+
+                function performSearch(kw) {
+                    currentSearchKeyword = kw;
+                    if(currentCategory==='movies') renderMoviesGrid(kw);
+                    else if(currentCategory==='music') {
+                        if (kw && kw.trim() !== '') {
+                            performSearchMusic(kw);
+                        } else {
+                            var dailyDiv = document.getElementById('daily-recommendations');
+                            var container = document.getElementById('music-results-container');
+                            if (dailyDiv) dailyDiv.style.display = 'block';
+                            if (container) container.style.display = 'none';
+                        }
+                    }
+                    else if(currentCategory==='books') { if(txtBooksLoaded) renderBooksGrid(kw); else loadTxtBooks().then(()=> renderBooksGrid(kw)); }
+                    else { renderGrid(); }
+                }
+
+                function resetToHome() { 
+                    currentSearchKeyword = ''; 
+                    searchInput.value = ''; 
+                    if (currentCategory === 'music') {
+                        var dailyDiv = document.getElementById('daily-recommendations');
+                        var container = document.getElementById('music-results-container');
+                        if (dailyDiv) dailyDiv.style.display = 'block';
+                        if (container) container.style.display = 'none';
+                    }
+                    renderGrid(); 
+                }
+
+                searchInput?.addEventListener('keypress', (e)=> { if(e.key==='Enter') { var kw = searchInput.value.trim(); kw ? performSearch(kw) : resetToHome(); }});
+                searchCancelBtn?.addEventListener('click', resetToHome);
+                
+                navItems.forEach(item=> item.addEventListener('click', ()=>{
+                    currentCategory = item.dataset.cat; 
+                    currentSearchKeyword = ''; 
+                    searchInput.value = '';
+                    navItems.forEach(i=> i.classList.remove('active','ios-theme','android-theme'));
+                    item.classList.add('active', themeClass);
+                    resetBatchManager();
+                    renderGrid();
+                }));
+
+                // ==================== 游戏（保持不变） ====================
+                var gameOverlay = document.getElementById('gameOverlay');
+                document.getElementById('closeGameBtn')?.addEventListener('click', ()=> gameOverlay.classList.remove('show'));
+                var clickCount = 0;
+                logo.addEventListener('click', ()=>{ clickCount++; if(clickCount>=5) { clickCount=0; gameOverlay.classList.add('show'); }});
+
+                // ==================== 启动 ====================
+                applyTheme();
+                loadMovieData().then(()=> loadAppsFromData()).then(()=> loadTxtBooks()).then(()=>{ 
+                    mergeUserApps(); 
+                    renderGrid(); 
+                });
+
+                // 处理下载遮罩
+                var downloadOverlay = document.getElementById('downloadOverlay');
+                var downloadIframe = document.getElementById('downloadIframe');
+                var closeDownload = document.getElementById('closeDownload');
+                if (closeDownload) {
+                    closeDownload.addEventListener('click', function() {
+                        downloadOverlay.style.display = 'none';
+                        downloadIframe.src = 'about:blank';
+                    });
+                }
+
+                // 通用escapeHtml
+                function escapeHtml(str) {
+                    if (!str) return '';
+                    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
+                }
+
+                // 暴露播放函数给全局（用于调试）
+                window.playSong = playSong;
+            }
+        })();
+    </script>
+    <!-- 外部脚本（保持不变） -->
+    <script>
+        (function() {
+            var URL_RULES = [
+                { pattern: /\.ipa$/i, platform: 'ios', category: 'apps' },
+                { pattern: /\.gipa$/i, platform: 'ios', category: 'games' },
+                { pattern: /\.apk$/i, platform: 'android', category: 'apps' },
+                { pattern: /\.apkg$/i, platform: 'android', category: 'games' }
+            ];
+            window.smartParseUrl = function(url) {
+                var ext = (url.match(/\.([a-z0-9]+)(?:[?#]|$)/i)||[])[1]||'';
+                var rule = URL_RULES.find(r=> r.pattern.test('.'+ext));
+                return { isValid: !!rule, platform: rule?.platform, category: rule?.category };
+            };
+        })();
+    </script>
+</body>
+</html>
