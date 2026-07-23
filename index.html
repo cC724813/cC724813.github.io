@@ -1,0 +1,3198 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>APP store · 本地歌单播放</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* ===== 基础样式 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #0a0a0c;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 16px 12px 0px;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding-bottom: 100px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: background-color 0.3s;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .logo-icon.ios-theme {
+            background: #1e88e5;
+            box-shadow: 0 4px 12px rgba(30, 136, 229, 0.4);
+        }
+
+        .logo-icon.android-theme {
+            background: #4CAF50;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .mini-player {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #1c1c1e;
+            border: 2px solid #3a3a3c;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .mini-player img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .mini-player:active {
+            transform: scale(0.95);
+        }
+        .mini-player .play-pulse {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            animation: pulse 1.5s infinite;
+            pointer-events: none;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-bar {
+            background: #1c1c1e;
+            border: 1px solid #2c2c2e;
+            border-radius: 30px;
+            padding: 6px 6px 6px 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .search-bar span {
+            font-size: 18px;
+            color: #888;
+            flex-shrink: 0;
+        }
+
+        .search-bar input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            flex: 1 1 150px;
+            outline: none;
+            padding: 8px 0;
+            min-width: 120px;
+            -webkit-appearance: none;
+            border-radius: 0;
+        }
+
+        .search-bar input::placeholder {
+            color: #555;
+        }
+
+        .search-cancel {
+            background: #2c2c2e;
+            border: none;
+            color: #aaa;
+            font-size: 14px;
+            padding: 6px 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            border: 0.5px solid #3a3a3c;
+            flex-shrink: 0;
+            margin-left: auto;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .search-cancel:active {
+            background: #3a3a3c;
+            color: white;
+        }
+
+        @media (max-width: 360px) {
+            .search-bar {
+                padding: 6px 6px 6px 12px;
+            }
+            .search-bar input {
+                min-width: 100px;
+                font-size: 14px;
+            }
+            .search-cancel {
+                padding: 6px 10px;
+                font-size: 13px;
+            }
+        }
+
+        .apps-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            margin-top: 4px;
+            padding-bottom: 20px;
+        }
+
+        .app-card {
+            background: #1c1c1e;
+            border-radius: 24px;
+            padding: 16px;
+            border: 1px solid #2c2c2e;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.2s;
+        }
+
+        .app-card:active {
+            background: #2c2c2e;
+            transform: scale(0.99);
+        }
+
+        .app-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            background: #2c2c2e;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            border: 2px solid #3a3a3c;
+            color: #aaa;
+            overflow: hidden;
+        }
+
+        .app-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .app-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .app-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .app-platform {
+            font-size: 12px;
+            background: #2c2c2e;
+            padding: 3px 10px;
+            border-radius: 20px;
+            color: #aaa;
+            display: inline-block;
+            border: 0.5px solid #3a3a3c;
+        }
+
+        .app-url-preview {
+            font-size: 12px;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+            margin-bottom: 8px;
+        }
+
+        .download-badge {
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            background: #1e88e5;
+            box-shadow: 0 2px 8px rgba(30, 136, 229, 0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .download-badge.android-theme { background: #4CAF50; }
+        .download-badge:active { transform: scale(0.96); }
+
+        /* ===== 图书/漫画卡片样式（统一风格） ===== */
+        .book-card {
+            background: #1c1c1e;
+            border-radius: 18px;
+            padding: 16px 20px;
+            border: 1px solid #2c2c2e;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        .book-card:active {
+            background: #2c2c2e;
+            transform: scale(0.98);
+        }
+        .book-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: white;
+            flex: 1;
+        }
+        .book-read-badge {
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 18px;
+            border-radius: 30px;
+            background: #1e88e5;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .book-read-badge.android-theme {
+            background: #4CAF50;
+        }
+        .book-read-badge:active {
+            transform: scale(0.96);
+        }
+
+        /* 图书分区头部样式 */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 16px 0 12px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+        }
+        .section-badge {
+            font-size: 12px;
+            background: #2c2c2e;
+            padding: 2px 12px;
+            border-radius: 20px;
+            color: #aaa;
+            border: 0.5px solid #3a3a3c;
+        }
+
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+        .fullscreen-overlay iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        .float-close {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            font-size: 24px;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.2s;
+        }
+        .float-close.ios-theme {
+            background: rgba(30, 136, 229, 0.8);
+        }
+        .float-close.android-theme {
+            background: rgba(76, 175, 80, 0.8);
+        }
+        .float-close:active {
+            transform: scale(0.95);
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        /* ===== 音乐分区样式 ===== */
+        .music-section { width: 100%; }
+        .daily-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 16px 0 12px;
+        }
+        .daily-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+        }
+        .refresh-daily {
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            color: #aaa;
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .refresh-daily:active {
+            background: #3a3a3c;
+            color: white;
+        }
+        .refresh-daily.hidden {
+            display: none;
+        }
+        .music-item {
+            background: #1c1c1e;
+            border: 1px solid #2c2c2e;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .music-item:active {
+            background: #2c2c2e;
+            transform: scale(0.99);
+        }
+        .music-item.playing {
+            border-color: #1e88e5;
+            background: #1a2a3a;
+        }
+        .music-cover {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: #2c2c2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: #888;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .music-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .music-cover .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #555;
+            border-top-color: #1db954;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .music-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .music-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .music-artist {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            background: #1c1c1e;
+            border-radius: 16px;
+            border: 1px solid #2c2c2e;
+            margin-top: 20px;
+        }
+        .empty-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #555;
+            background: #1c1c1e;
+            border-radius: 16px;
+            border: 2px dashed #2c2c2e;
+            margin-top: 20px;
+            font-size: 15px;
+        }
+
+        /* ===== 浮动播放器 ===== */
+        .floating-player {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 400px;
+            background: rgba(28, 28, 30, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 12px;
+            z-index: 150;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            display: none;
+        }
+        .floating-player.show { display: block; }
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .now-playing-info {
+            flex: 1;
+        }
+        .now-playing-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+        .now-playing-artist {
+            font-size: 11px;
+            color: #888;
+        }
+        .zoom-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            width: 32px;
+            height: 32px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .zoom-btn:active {
+            transform: scale(0.92);
+            background: rgba(255,255,255,0.3);
+        }
+        .close-player {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 8px;
+        }
+        .lyrics-scroll-container {
+            height: 96px;
+            overflow-y: auto;
+            margin: 6px 0 8px;
+            padding: 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid #3a3a3c;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            line-height: 32px;
+        }
+        .lyric-line {
+            text-align: center;
+            padding: 0;
+            color: #aaa;
+            font-size: 12px;
+            transition: all 0.2s;
+            line-height: 32px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            height: 32px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .lyric-line.active.ios-theme { color: #1e88e5; font-size: 14px; font-weight: 600; }
+        .lyric-line.active.android-theme { color: #4CAF50; font-size: 14px; font-weight: 600; }
+        .audio-wrapper audio { width: 100%; height: 40px; border-radius: 20px; background: #2c2c2e; }
+
+        /* ===== 底部导航 ===== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 360px;
+            background: rgba(28, 28, 30, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            padding: 6px 4px;
+            z-index: 100;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: #8e8e93;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 0;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 60px;
+            gap: 2px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .nav-item.active { color: white; }
+        .nav-item.active.ios-theme { background: rgba(30, 136, 229, 0.2); }
+        .nav-item.active.android-theme { background: rgba(76, 175, 80, 0.2); }
+        .nav-item i { font-size: 20px; font-style: normal; }
+
+        .game-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: #000;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            touch-action: none;
+        }
+        .game-overlay.show { display: flex; }
+        .game-header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e1e1e;
+            padding: 12px 24px;
+            border-radius: 60px;
+            margin-bottom: 16px;
+            border: 1px solid #3a3a3c;
+        }
+        .game-title { color: #ffd966; font-size: 1.8rem; font-weight: bold; letter-spacing: 2px; }
+        .game-close { background: #3a3a3c; border: none; color: white; font-size: 32px; width: 60px; height: 60px; border-radius: 40px; cursor: pointer; line-height: 1; }
+        .game-canvas-wrapper {
+            background: #1a2a32;
+            border-radius: 28px;
+            border: 3px solid #2c3e50;
+            overflow: hidden;
+            width: 100%;
+            max-width: 1000px;
+            aspect-ratio: 800 / 300;
+        }
+        canvas { display: block; width: 100%; height: 100%; image-rendering: crisp-edges; background: #fefefe; }
+
+        /* ===== 阅读器覆盖层 (小说 & 漫画共用) ===== */
+        .reader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0c;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+        .reader-header {
+            background: #1c1c1e;
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            border-bottom: 1px solid #2c2c2e;
+        }
+        .reader-back {
+            background: transparent;
+            border: 1px solid #3a3a3c;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .reader-back:active {
+            background: #2c2c2e;
+        }
+        .reader-title {
+            font-size: 1rem;
+            font-weight: 500;
+            flex: 1;
+            text-align: center;
+            color: #fff;
+        }
+        .progress-info {
+            font-size: 0.7rem;
+            background: #2c2c2e;
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: #ccc;
+        }
+        .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            font-size: 17px;
+            line-height: 1.65;
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #ddd;
+            background: #0f0f12;
+            -webkit-overflow-scrolling: touch;
+        }
+        /* ===== 漫画专用滚动容器 (全屏滑动翻页) ===== */
+        .comic-scroll-wrapper {
+            flex: 1;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            background: #000;
+            height: 100%;
+        }
+        .comic-scroll-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+        .comic-page-card {
+            width: 100%;
+            height: 100%;
+            min-height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #000;
+            position: relative;
+            overflow: hidden;
+        }
+        .comic-img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+            background: #000;
+            pointer-events: none;
+        }
+        .comic-loading-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+            background: #0a0a0c;
+            width: 100%;
+            height: 100%;
+        }
+        .comic-placeholder-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.15);
+            border-top: 4px solid #ffaa55;
+            border-radius: 50%;
+            animation: comicSpin 0.7s linear infinite;
+        }
+        @keyframes comicSpin { to { transform: rotate(360deg); } }
+
+        /* 加载提示 - 居中显示 */
+        .comic-loading-tip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1002;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            padding: 20px 32px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            color: white;
+            font-size: 0.95rem;
+            pointer-events: none;
+        }
+        .comic-loading-tip .tip-spinner {
+            width: 36px;
+            height: 36px;
+            border: 4px solid rgba(255,255,255,0.15);
+            border-top: 4px solid #ffaa55;
+            border-radius: 50%;
+            animation: comicSpin 0.7s linear infinite;
+        }
+
+        .retry-btn {
+            background: #e67e22;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .movie-card {
+            background: #1c1c1e;
+            border-radius: 24px;
+            padding: 28px 16px;
+            text-align: center;
+            border: 1px solid #2c2c2e;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .movie-card:active {
+            background: #2c2c2e;
+            transform: scale(0.99);
+        }
+        .movie-title {
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .movie-player-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 1100;
+            display: none;
+            flex-direction: column;
+        }
+        .movie-player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #1c1c1e;
+            border-bottom: 1px solid #2c2c2e;
+            flex-shrink: 0;
+        }
+        .movie-back-btn {
+            background: transparent;
+            border: 1px solid #3a3a3c;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .movie-back-btn:active {
+            background: #2c2c2e;
+        }
+        .movie-title-header {
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .movie-video-wrapper {
+            flex: 1;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .movie-video-wrapper video {
+            width: 100%;
+            height: auto;
+            max-height: 60vh;
+            object-fit: contain;
+        }
+        .movie-episodes-area {
+            background: #1c1c1e;
+            padding: 16px 20px;
+            border-top: 1px solid #2c2c2e;
+            flex-shrink: 0;
+        }
+        .movie-episodes-label {
+            color: #aaa;
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+        }
+        .movie-episodes-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .movie-episode-btn {
+            background: #2c2c2e;
+            border: none;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .movie-episode-btn.ios-theme { background: #1e88e5; }
+        .movie-episode-btn.android-theme { background: #4CAF50; }
+        .movie-episode-btn:active { opacity: 0.8; }
+
+        .import-area { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-area">
+                <div class="logo-icon" id="logoIcon">C</div>
+                <div class="logo-text">APP store</div>
+            </div>
+            <div class="header-right">
+                <div class="mini-player" id="miniPlayer">
+                    <img id="miniPlayerImg" src="" alt="cover">
+                    <div class="play-pulse"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-bar" id="searchBar">
+            <span>🔍</span>
+            <input type="text" id="searchInput" placeholder="搜索当前分区..." autocomplete="off">
+            <button class="search-cancel" id="searchCancelBtn">取消</button>
+        </div>
+
+        <div class="apps-grid" id="appsGrid"></div>
+    </div>
+
+    <div class="bottom-nav" id="bottomNav">
+        <button class="nav-item active" data-cat="apps"><i>📱</i> 应用</button>
+        <button class="nav-item" data-cat="games"><i>🎮</i> 游戏</button>
+        <button class="nav-item" data-cat="movies"><i>🎬</i> 电影</button>
+        <button class="nav-item" data-cat="music"><i>🎵</i> 音乐</button>
+        <button class="nav-item" data-cat="books"><i>📚</i> 图书</button>
+    </div>
+
+    <div id="downloadOverlay" class="fullscreen-overlay">
+        <iframe id="downloadIframe" src="about:blank"></iframe>
+        <div id="closeDownload" class="float-close">✕</div>
+    </div>
+
+    <div class="floating-player" id="floatingPlayer">
+        <div class="player-header">
+            <div class="now-playing-info">
+                <div class="now-playing-title" id="playerTitle">请选择歌曲</div>
+                <div class="now-playing-artist" id="playerArtist"></div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="zoom-btn" id="zoomBtn">−</button>
+                <button class="close-player" id="closePlayerBtn">✕</button>
+            </div>
+        </div>
+        <div class="lyrics-scroll-container" id="lyricsContainer">
+            <div class="no-lyric">暂无歌词</div>
+        </div>
+        <div class="audio-wrapper">
+            <audio id="audioPlayer" controls controlslist="nodownload"></audio>
+        </div>
+    </div>
+
+    <div class="game-overlay" id="gameOverlay">
+        <div class="game-header">
+            <span class="game-title">🦖 像素冲刺</span>
+            <button class="game-close" id="closeGameBtn">✕</button>
+        </div>
+        <div class="game-canvas-wrapper">
+            <canvas id="gameCanvas" width="800" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- ===== 阅读器覆盖层 ===== -->
+    <div id="readerOverlay" class="reader-overlay">
+        <div class="reader-header">
+            <button class="reader-back" id="closeReaderBtn">←返回</button>
+            <div class="reader-title" id="readerTitle">加载中...</div>
+            <div class="progress-info" id="progressInfo">0%</div>
+        </div>
+        <div id="readerContentArea"></div>
+    </div>
+
+    <div id="moviePlayerOverlay" class="movie-player-overlay">
+        <div class="movie-player-header">
+            <button class="movie-back-btn" id="closeMovieBtn">←返回</button>
+            <span class="movie-title-header" id="moviePlayerTitle">视频播放器</span>
+        </div>
+        <div class="movie-video-wrapper">
+            <video id="movieVideo" preload="auto" playsinline webkit-playsinline controls></video>
+        </div>
+        <div class="movie-episodes-area" id="movieEpisodesArea" style="display:none;">
+            <div class="movie-episodes-label">📺 选集</div>
+            <div class="movie-episodes-grid" id="movieEpisodesGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // 检查 JSZip 是否加载
+            if (typeof JSZip === 'undefined') {
+                console.warn('JSZip 未加载，尝试重新加载...');
+                var script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                document.head.appendChild(script);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initApp);
+            } else {
+                initApp();
+            }
+
+            function initApp() {
+                function detectDevice() {
+                    var ua = navigator.userAgent || navigator.vendor || window.opera;
+                    if (/android/i.test(ua)) return 'android';
+                    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'ios';
+                    return 'ios';
+                }
+
+                var deviceType = detectDevice();
+                var themeClass = deviceType === 'android' ? 'android-theme' : 'ios-theme';
+                var devicePlatform = deviceType;
+                var PLATFORM_SPECIFIC_CATEGORIES = ['apps', 'games'];
+
+                function applyTheme() {
+                    var logoIcon = document.getElementById('logoIcon');
+                    if (logoIcon) logoIcon.classList.add(themeClass);
+                    var closeDownload = document.getElementById('closeDownload');
+                    if (closeDownload) closeDownload.classList.add(themeClass);
+                }
+
+                // ==================== 应用/游戏数据 ====================
+                var apps = [];
+                function loadAppsFromData() {
+                    return new Promise(function(resolve) {
+                        var script = document.createElement('script');
+                        script.src = 'apps-data.js';
+                        script.onload = function() {
+                            if (typeof APPS_LIST !== 'undefined') {
+                                apps = APPS_LIST.map(function(item) {
+                                    return {
+                                        id: item.i,
+                                        name: item.n,
+                                        url: 'https://loadly.io/' + item.u,
+                                        platform: item.p === 'i' ? 'ios' : 'android',
+                                        category: item.c === 'a' ? 'apps' : 'games',
+                                        icon: item.icon || null
+                                    };
+                                });
+                            }
+                            resolve();
+                        };
+                        script.onerror = function() { resolve(); };
+                        document.head.appendChild(script);
+                    });
+                }
+
+                // ==================== 图书数据 (小说) ====================
+                var txtBooks = [];
+                var txtBooksLoaded = false;
+                function loadTxtBooks() {
+                    return new Promise(function(resolve) {
+                        if (txtBooksLoaded) { resolve(); return; }
+                        var script = document.createElement('script');
+                        script.src = 'txt.js';
+                        script.onload = function() {
+                            if (typeof TXT_BOOKS !== 'undefined') {
+                                txtBooks = TXT_BOOKS.map(function(item) {
+                                    return { id: item.i, name: item.n, url: 'https://loadly.io/' + item.u };
+                                });
+                                txtBooksLoaded = true;
+                            }
+                            resolve();
+                        };
+                        script.onerror = function() { resolve(); };
+                        document.head.appendChild(script);
+                    });
+                }
+
+                // ==================== 漫画数据 (独立 mh.js) ====================
+                var comicBooks = [];
+                var comicBooksLoaded = false;
+                function loadComicBooks() {
+                    return new Promise(function(resolve) {
+                        if (comicBooksLoaded) { resolve(); return; }
+                        var script = document.createElement('script');
+                        script.src = 'mh.js';
+                        script.onload = function() {
+                            if (typeof MH_COMICS !== 'undefined' && Array.isArray(MH_COMICS)) {
+                                comicBooks = MH_COMICS.map(function(item) {
+                                    return {
+                                        id: item.id || item.url || Math.random().toString(36).substr(2, 6),
+                                        name: item.title || item.name || '未知漫画',
+                                        url: item.url || ''
+                                    };
+                                });
+                                comicBooksLoaded = true;
+                            }
+                            resolve();
+                        };
+                        script.onerror = function() {
+                            comicBooks = [];
+                            comicBooksLoaded = true;
+                            resolve();
+                        };
+                        document.head.appendChild(script);
+                    });
+                }
+
+                // ===== 随机取N项 =====
+                function getRandomItems(arr, n) {
+                    if (!arr || !arr.length) return [];
+                    var shuffled = arr.slice().sort(function() { return Math.random() - 0.5; });
+                    return shuffled.slice(0, Math.min(n, shuffled.length));
+                }
+
+                function mergeUserApps() {
+                    try { 
+                        var saved = localStorage.getItem('appstore_apps_data'); 
+                        if (saved) {
+                            var parsed = JSON.parse(saved);
+                            if (Array.isArray(parsed) && parsed.length) {
+                                var urlMap = {};
+                                for (var i = 0; i < apps.length; i++) urlMap[apps[i].url] = true;
+                                for (var i = 0; i < parsed.length; i++) {
+                                    if (!urlMap[parsed[i].url]) {
+                                        apps.push(parsed[i]);
+                                        urlMap[parsed[i].url] = true;
+                                    }
+                                }
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                // ==================== 电影数据 ====================
+                var movieData = [];
+                function loadMovieData() {
+                    return new Promise(function(resolve) {
+                        var script = document.createElement('script');
+                        script.src = 'movie.js';
+                        script.onload = function() {
+                            if (typeof MOVIE_DATA !== 'undefined') movieData = MOVIE_DATA;
+                            resolve();
+                        };
+                        script.onerror = function() { resolve(); };
+                        document.head.appendChild(script);
+                    });
+                }
+
+                // ============================================================
+                //  🎵 音乐播放核心 - 全局运行，不受分区影响
+                // ============================================================
+                var PLAYLIST = [];
+                var currentSong = null;
+                var currentLyrics = [];
+                var isSynced = false;
+                var audioPlayer = document.getElementById('audioPlayer');
+                var lyricsContainer = document.getElementById('lyricsContainer');
+                var playerTitle = document.getElementById('playerTitle');
+                var playerArtist = document.getElementById('playerArtist');
+                var floatingPlayer = document.getElementById('floatingPlayer');
+                var miniPlayer = document.getElementById('miniPlayer');
+                var miniPlayerImg = document.getElementById('miniPlayerImg');
+                var zoomBtn = document.getElementById('zoomBtn');
+                var closePlayerBtn = document.getElementById('closePlayerBtn');
+                var isZoomedOut = false;
+                var currentCoverUrl = '';
+                var coverCache = {};
+
+                // 通知相关 - 全局运行
+                var notificationTimer = null;
+                var lastNotifiedLyric = '';
+                var isNotificationGranted = false;
+                var isCurrentlyPaused = false;
+
+                // ===== 通知权限 (全局) =====
+                function requestNotificationPermission() {
+                    if (!('Notification' in window)) {
+                        console.log('❌ 浏览器不支持通知');
+                        return;
+                    }
+                    if (Notification.permission === 'granted') {
+                        isNotificationGranted = true;
+                        console.log('✅ 通知权限已开启');
+                        return;
+                    }
+                    if (Notification.permission === 'denied') {
+                        console.log('❌ 通知权限被拒绝');
+                        return;
+                    }
+                    Notification.requestPermission().then(function(permission) {
+                        if (permission === 'granted') {
+                            isNotificationGranted = true;
+                            console.log('✅ 通知权限已开启');
+                        } else {
+                            console.log('❌ 通知权限被拒绝');
+                        }
+                    });
+                }
+
+                // ===== 更新标签页标题 (全局) =====
+                function updateTabTitle(lyricText) {
+                    if (lyricText && lyricText !== '' && !lyricText.includes('⏸️')) {
+                        document.title = lyricText;
+                    } else {
+                        document.title = 'APP store';
+                    }
+                }
+
+                // ===== 发送通知 (全局) =====
+                function sendLyricNotification(songTitle, artist, lyricText, iconUrl) {
+                    if (isCurrentlyPaused) return;
+                    if (!isNotificationGranted) return;
+                    if (lyricText === lastNotifiedLyric) return;
+                    if (lyricText.includes('⏸️') || lyricText.includes('暂停')) return;
+                    
+                    lastNotifiedLyric = lyricText;
+
+                    var notificationTitle = lyricText || '🎵 播放中';
+                    var notificationBody = artist ? '🎵 ' + songTitle + ' · ' + artist : '🎵 ' + songTitle;
+
+                    var options = {
+                        body: notificationBody,
+                        tag: 'music-lyric-notification',
+                        requireInteraction: false,
+                        silent: true,
+                        data: { url: window.location.href }
+                    };
+                    if (iconUrl) options.icon = iconUrl;
+
+                    try {
+                        var notification = new Notification(notificationTitle, options);
+                        notification.onclick = function() { window.focus(); this.close(); };
+                    } catch (e) {
+                        console.warn('通知发送失败:', e);
+                    }
+                }
+
+                function stopNotificationUpdates() {
+                    if (notificationTimer) {
+                        clearInterval(notificationTimer);
+                        notificationTimer = null;
+                    }
+                    lastNotifiedLyric = '';
+                }
+
+                function getUpdateInterval() {
+                    var rate = audioPlayer.playbackRate || 1.0;
+                    var baseInterval = 60;
+                    var adjustedInterval = Math.max(30, baseInterval / rate);
+                    return Math.round(adjustedInterval);
+                }
+
+                var currentSongTitle = '';
+                var currentArtist = '';
+
+                function startNotificationUpdates(songTitle, artist, coverUrl) {
+                    currentSongTitle = songTitle;
+                    currentArtist = artist;
+                    isCurrentlyPaused = false;
+                    
+                    if (notificationTimer) {
+                        clearInterval(notificationTimer);
+                        notificationTimer = null;
+                    }
+                    
+                    lastNotifiedLyric = '';
+
+                    sendLyricNotification(songTitle, artist, '🎵 开始播放', coverUrl);
+                    updateTabTitle('🎵 开始播放');
+
+                    var intervalId = null;
+
+                    function updateLoop() {
+                        if (!currentSongTitle) {
+                            if (intervalId) {
+                                clearInterval(intervalId);
+                                intervalId = null;
+                            }
+                            return;
+                        }
+                        
+                        if (audioPlayer.paused) {
+                            isCurrentlyPaused = true;
+                            document.title = 'APP store';
+                            return;
+                        } else {
+                            isCurrentlyPaused = false;
+                        }
+
+                        var activeLine = document.querySelector('.lyric-line.active');
+                        var lyricText = '';
+                        if (activeLine) {
+                            lyricText = activeLine.textContent.trim();
+                        } else {
+                            var allLines = document.querySelectorAll('.lyric-line');
+                            for (var i = 0; i < allLines.length; i++) {
+                                var text = allLines[i].textContent.trim();
+                                if (text && !text.includes('暂无歌词') && !text.includes('加载中')) {
+                                    lyricText = text;
+                                    break;
+                                }
+                            }
+                            if (!lyricText) lyricText = '🎵 播放中...';
+                        }
+
+                        if (!lyricText || lyricText === '') lyricText = '🎵 播放中...';
+
+                        sendLyricNotification(currentSongTitle, currentArtist, lyricText, currentCoverUrl);
+                        updateTabTitle(lyricText);
+                    }
+
+                    function startLoop() {
+                        if (intervalId) {
+                            clearInterval(intervalId);
+                            intervalId = null;
+                        }
+                        var interval = getUpdateInterval();
+                        intervalId = setInterval(function() {
+                            updateLoop();
+                            var newInterval = getUpdateInterval();
+                            if (newInterval !== interval) {
+                                interval = newInterval;
+                                if (intervalId) {
+                                    clearInterval(intervalId);
+                                    intervalId = null;
+                                    intervalId = setInterval(function() { updateLoop(); }, interval);
+                                }
+                            }
+                        }, interval);
+                        notificationTimer = intervalId;
+                    }
+
+                    startLoop();
+                    audioPlayer._restartNotificationLoop = startLoop;
+                }
+
+                // ===== 随机播放下一首 =====
+                function playRandomNext() {
+                    if (!PLAYLIST.length) return;
+                    var available = PLAYLIST.slice();
+                    if (currentSong) {
+                        available = available.filter(function(s) { return s.id !== currentSong.id; });
+                    }
+                    if (available.length === 0) {
+                        available = PLAYLIST.slice();
+                    }
+                    var randomIndex = Math.floor(Math.random() * available.length);
+                    var nextSong = available[randomIndex];
+                    playSong(nextSong);
+                }
+
+                // ============================================================
+                //  音乐播放核心函数
+                // ============================================================
+                function getRandomSongs(count) {
+                    count = count || 5;
+                    if (!PLAYLIST.length) return [];
+                    var shuffled = PLAYLIST.slice().sort(function() { return Math.random() - 0.5; });
+                    return shuffled.slice(0, Math.min(count, shuffled.length));
+                }
+
+                function searchPlaylist(keyword) {
+                    if (!PLAYLIST.length) return [];
+                    var kw = keyword.trim().toLowerCase();
+                    return PLAYLIST.filter(function(s) {
+                        return s.title.toLowerCase().includes(kw) || 
+                               (s.artist && s.artist.toLowerCase().includes(kw));
+                    });
+                }
+
+                function getFullLoadlyUrl(code) {
+                    if (!code) return null;
+                    if (code.startsWith('http://') || code.startsWith('https://')) {
+                        return code;
+                    }
+                    return 'https://loadly.io/' + code;
+                }
+
+                async function fetchLoadlyPage(url) {
+                    var resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    return await resp.text();
+                }
+
+                function extractDownloadUrl(html) {
+                    var patterns = [
+                        /https:\/\/app-storage\.loadly\.io\/[^\s"']+/i,
+                        /https:\/\/[a-z0-9]+\.loadly\.io\/[^\s"']+/i,
+                        /https:\/\/[^\s"']+\.(mp3|txt|lrc)[^\s"']*/i
+                    ];
+                    for (var i = 0; i < patterns.length; i++) {
+                        var match = html.match(patterns[i]);
+                        if (match) return match[0];
+                    }
+                    return null;
+                }
+
+                function extractCoverFromID3(arrayBuffer) {
+                    try {
+                        var data = new Uint8Array(arrayBuffer);
+                        if (data.length < 10) return null;
+                        if (String.fromCharCode(data[0], data[1], data[2]) !== 'ID3') return null;
+
+                        var size = ((data[6] & 0x7F) << 21) | ((data[7] & 0x7F) << 14) | ((data[8] & 0x7F) << 7) | (data[9] & 0x7F);
+                        var pos = 10;
+                        var end = Math.min(pos + size, data.length);
+
+                        while (pos + 10 <= end) {
+                            var frameId = String.fromCharCode(data[pos], data[pos + 1], data[pos + 2], data[pos + 3]);
+                            var frameSize = (data[pos + 4] << 24) | (data[pos + 5] << 16) | (data[pos + 6] << 8) | data[pos + 7];
+                            if (frameSize === 0) break;
+
+                            var start = pos + 10;
+                            var frameEnd = Math.min(start + frameSize, data.length);
+
+                            if (frameId === 'APIC') {
+                                var idx = start;
+                                idx++;
+                                while (idx < frameEnd && data[idx] !== 0) idx++;
+                                idx++;
+                                idx++;
+                                while (idx < frameEnd && data[idx] !== 0) idx++;
+                                idx++;
+
+                                var imageData = data.slice(idx, frameEnd);
+                                if (imageData.length > 100) {
+                                    var mimeType = 'image/jpeg';
+                                    if (imageData[0] === 0x89 && imageData[1] === 0x50 && imageData[2] === 0x4E && imageData[3] === 0x47) {
+                                        mimeType = 'image/png';
+                                    } else if (imageData[0] === 0x47 && imageData[1] === 0x49 && imageData[2] === 0x46) {
+                                        mimeType = 'image/gif';
+                                    }
+                                    var blob = new Blob([imageData], { type: mimeType });
+                                    return URL.createObjectURL(blob);
+                                }
+                            }
+                            pos += 10 + frameSize;
+                        }
+                        return null;
+                    } catch(e) {
+                        return null;
+                    }
+                }
+
+                async function fetchFirstBytes(url, maxBytes) {
+                    maxBytes = maxBytes || 2097152;
+                    var response = await fetch(url, {
+                        headers: { 'User-Agent': 'Mozilla/5.0' }
+                    });
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    var reader = response.body.getReader();
+                    var chunks = [];
+                    var received = 0;
+                    while (received < maxBytes) {
+                        var result = await reader.read();
+                        if (result.done) break;
+                        chunks.push(result.value);
+                        received += result.value.length;
+                        if (received >= maxBytes) {
+                            await reader.cancel();
+                            break;
+                        }
+                    }
+                    var totalLength = 0;
+                    for (var i = 0; i < chunks.length; i++) {
+                        totalLength += chunks[i].length;
+                    }
+                    var combined = new Uint8Array(totalLength);
+                    var offset = 0;
+                    for (var i = 0; i < chunks.length; i++) {
+                        combined.set(chunks[i], offset);
+                        offset += chunks[i].length;
+                    }
+                    return combined.buffer;
+                }
+
+                async function fetchCoverFromLoadlyPage(code) {
+                    if (coverCache[code]) return coverCache[code];
+                    try {
+                        var shareUrl = getFullLoadlyUrl(code);
+                        if (!shareUrl) {
+                            coverCache[code] = null;
+                            return null;
+                        }
+                        var html = await fetchLoadlyPage(shareUrl);
+                        var mp3Url = extractDownloadUrl(html);
+                        if (!mp3Url) {
+                            coverCache[code] = null;
+                            return null;
+                        }
+                        var arrayBuffer = await fetchFirstBytes(mp3Url, 2097152);
+                        var coverUrl = extractCoverFromID3(arrayBuffer);
+                        coverCache[code] = coverUrl || null;
+                        return coverUrl || null;
+                    } catch(e) {
+                        console.warn('提取封面失败:', code, e);
+                        coverCache[code] = null;
+                        return null;
+                    }
+                }
+
+                function loadCoversForItems(containerSelector) {
+                    var items = document.querySelectorAll(containerSelector + ' .music-item');
+                    items.forEach(function(el) {
+                        var mp3Code = el.dataset.mp3;
+                        var coverDiv = el.querySelector('.music-cover');
+                        if (!coverDiv) return;
+                        if (coverDiv.querySelector('img') || coverDiv.querySelector('.loading-spinner')) return;
+
+                        coverDiv.innerHTML = '<div class="loading-spinner"></div>';
+
+                        (async function() {
+                            var coverUrl = await fetchCoverFromLoadlyPage(mp3Code);
+                            if (coverUrl) {
+                                coverDiv.innerHTML = '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'🎵\';">';
+                            } else {
+                                coverDiv.innerHTML = '🎵';
+                            }
+                        })();
+                    });
+                }
+
+                function parseLRC(text) {
+                    if (!text) return { lines: [], isSynced: false };
+                    var lines = text.split(/\r?\n/);
+                    var timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)/;
+                    var result = [];
+                    var hasTime = false;
+                    for (var i = 0; i < lines.length; i++) {
+                        var match = lines[i].match(timeRegex);
+                        if (match) {
+                            hasTime = true;
+                            var min = parseInt(match[1], 10);
+                            var sec = parseInt(match[2], 10);
+                            var ms = match[3] ? parseInt(match[3], 10) : 0;
+                            if (match[3] && match[3].length === 2) ms *= 10;
+                            var time = min * 60 + sec + ms / 1000;
+                            var textContent = match[4].trim();
+                            if (textContent) result.push({ time: time, text: textContent });
+                        } else if (lines[i].trim() && !hasTime) {
+                            result.push({ time: -1, text: lines[i].trim() });
+                        }
+                    }
+                    result.sort(function(a, b) { return a.time - b.time; });
+                    return { lines: result, isSynced: hasTime };
+                }
+
+                function displayLyrics(text, audioElement) {
+                    if (!text) {
+                        lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 无歌词</div>';
+                        return;
+                    }
+                    var parsed = parseLRC(text);
+                    currentLyrics = parsed.lines;
+                    isSynced = parsed.isSynced;
+                    if (currentLyrics.length === 0) {
+                        lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 无歌词内容</div>';
+                        return;
+                    }
+                    var html = '';
+                    for (var i = 0; i < currentLyrics.length; i++) {
+                        var line = currentLyrics[i];
+                        var dataTime = line.time >= 0 ? 'data-time="' + line.time + '"' : '';
+                        var clickableClass = line.time >= 0 ? 'clickable' : '';
+                        html += '<div class="lyric-line ' + clickableClass + '" ' + dataTime + '>' + escapeHtml(line.text) + '</div>';
+                    }
+                    lyricsContainer.innerHTML = html;
+
+                    if (isSynced && audioElement) {
+                        document.querySelectorAll('.lyric-line.clickable').forEach(function(el) {
+                            el.addEventListener('click', function() {
+                                var t = parseFloat(this.dataset.time);
+                                if (!isNaN(t) && t >= 0) {
+                                    audioElement.currentTime = t;
+                                    updateHighlight(audioElement.currentTime);
+                                }
+                            });
+                        });
+                        audioElement.addEventListener('timeupdate', function() {
+                            updateHighlight(this.currentTime);
+                        });
+                        setTimeout(function() {
+                            var first = document.querySelector('.lyric-line.clickable');
+                            if (first) {
+                                document.querySelectorAll('.lyric-line').forEach(function(el) {
+                                    el.classList.remove('active');
+                                });
+                                first.classList.add('active', themeClass);
+                            }
+                        }, 200);
+                    }
+                }
+
+                function updateHighlight(currentSec) {
+                    if (!isSynced || !currentLyrics.length) return;
+                    var activeIdx = -1;
+                    for (var i = 0; i < currentLyrics.length; i++) {
+                        if (currentLyrics[i].time >= 0 && currentLyrics[i].time <= currentSec) {
+                            activeIdx = i;
+                        } else if (currentLyrics[i].time > currentSec) {
+                            break;
+                        }
+                    }
+                    var linesDom = document.querySelectorAll('.lyric-line');
+                    linesDom.forEach(function(el, idx) {
+                        el.classList.remove('active', 'ios-theme', 'android-theme');
+                        if (idx === activeIdx && activeIdx >= 0) {
+                            el.classList.add('active', themeClass);
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    });
+                }
+
+                async function playSong(song) {
+                    if (!song) return;
+                    currentSong = song;
+                    playerTitle.textContent = song.title;
+                    playerArtist.textContent = song.artist || '未知歌手';
+                    floatingPlayer.classList.add('show');
+                    if (isZoomedOut) zoomIn();
+
+                    lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">⏳ 加载中...</div>';
+                    try {
+                        var shareUrl = getFullLoadlyUrl(song.mp3);
+                        if (!shareUrl) throw new Error('无效的MP3链接');
+
+                        var html = await fetchLoadlyPage(shareUrl);
+                        var mp3Url = extractDownloadUrl(html);
+                        if (!mp3Url) throw new Error('未找到MP3直链');
+
+                        audioPlayer.src = mp3Url;
+                        audioPlayer.load();
+                        audioPlayer.play().catch(function() {});
+
+                        var arrayBuffer = await fetchFirstBytes(mp3Url, 2097152);
+                        var coverUrl = extractCoverFromID3(arrayBuffer);
+                        if (coverUrl) {
+                            currentCoverUrl = coverUrl;
+                            miniPlayerImg.src = coverUrl;
+                            miniPlayer.style.display = 'flex';
+                        } else {
+                            miniPlayer.style.display = 'none';
+                        }
+
+                        if (song.lyric) {
+                            var lyricFullUrl = getFullLoadlyUrl(song.lyric);
+                            var lyricHtml = await fetchLoadlyPage(lyricFullUrl);
+                            var lyricUrl = extractDownloadUrl(lyricHtml);
+                            if (lyricUrl) {
+                                var lyricResp = await fetch(lyricUrl);
+                                var lyricText = await lyricResp.text();
+                                if (lyricText && lyricText.trim().length > 0) {
+                                    displayLyrics(lyricText, audioPlayer);
+                                } else {
+                                    lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 歌词文件为空</div>';
+                                }
+                            } else {
+                                lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 未找到歌词文件</div>';
+                            }
+                        } else {
+                            lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#555;">📭 未配置歌词</div>';
+                        }
+
+                        // 启动通知更新 (全局)
+                        setTimeout(function() {
+                            startNotificationUpdates(song.title, song.artist, coverUrl);
+                        }, 600);
+
+                    } catch (error) {
+                        console.error(error);
+                        lyricsContainer.innerHTML = '<div class="lyric-line empty-hint" style="text-align:center;color:#ff4444;">❌ ' + escapeHtml(error.message) + '</div>';
+                    }
+                }
+
+                function zoomOut() {
+                    floatingPlayer.classList.remove('show');
+                    if (currentCoverUrl) {
+                        miniPlayer.style.display = 'flex';
+                    }
+                    isZoomedOut = true;
+                }
+                function zoomIn() {
+                    miniPlayer.style.display = 'none';
+                    floatingPlayer.classList.add('show');
+                    isZoomedOut = false;
+                }
+                function toggleZoom() {
+                    if (isZoomedOut) {
+                        zoomIn();
+                    } else {
+                        zoomOut();
+                    }
+                }
+                if (zoomBtn) zoomBtn.addEventListener('click', toggleZoom);
+                if (miniPlayer) miniPlayer.addEventListener('click', zoomIn);
+                if (closePlayerBtn) closePlayerBtn.addEventListener('click', function() {
+                    audioPlayer.pause();
+                    floatingPlayer.classList.remove('show');
+                    miniPlayer.style.display = 'none';
+                    isZoomedOut = false;
+                    stopNotificationUpdates();
+                    document.title = 'APP store';
+                });
+
+                // ===== 音频事件 - 全局绑定 =====
+                audioPlayer.addEventListener('pause', function() {
+                    isCurrentlyPaused = true;
+                    document.title = 'APP store';
+                    stopNotificationUpdates();
+                });
+
+                audioPlayer.addEventListener('play', function() {
+                    if (currentSongTitle && isNotificationGranted) {
+                        isCurrentlyPaused = false;
+                        startNotificationUpdates(currentSongTitle, currentArtist, currentCoverUrl);
+                    }
+                });
+
+                audioPlayer.addEventListener('ended', function() {
+                    playRandomNext();
+                });
+
+                audioPlayer.addEventListener('ratechange', function() {
+                    if (currentSongTitle && isNotificationGranted && !audioPlayer.paused) {
+                        startNotificationUpdates(currentSongTitle, currentArtist, currentCoverUrl);
+                    }
+                });
+
+                // ============================================================
+                //  音乐分区渲染 (仅负责显示歌单，不控制通知)
+                // ============================================================
+                function renderRecommendations() {
+                    var dailyDiv = document.getElementById('daily-recommendations');
+                    var refreshBtn = document.getElementById('refreshDailyBtn');
+                    if (!dailyDiv) return;
+                    var container = document.getElementById('music-results-container');
+                    if (container && container.style.display !== 'none') {
+                        if (refreshBtn) refreshBtn.classList.add('hidden');
+                    } else {
+                        if (refreshBtn) refreshBtn.classList.remove('hidden');
+                    }
+
+                    var songs = getRandomSongs(5);
+                    if (songs.length === 0) {
+                        dailyDiv.innerHTML = '<div class="empty-message">📭 歌单为空</div>';
+                        return;
+                    }
+                    var html = '';
+                    songs.forEach(function(song) {
+                        var isPlaying = (currentSong && currentSong.id == song.id);
+                        html += '<div class="music-item' + (isPlaying ? ' playing' : '') + '" data-id="' + song.id + '" data-title="' + escapeHtml(song.title) + '" data-artist="' + escapeHtml(song.artist) + '" data-mp3="' + song.mp3 + '" data-lyric="' + (song.lyric || '') + '">';
+                        html += '<div class="music-cover">🎵</div>';
+                        html += '<div class="music-info"><div class="music-title">' + escapeHtml(song.title) + '</div><div class="music-artist">' + escapeHtml(song.artist) + '</div></div>';
+                        html += '</div>';
+                    });
+                    dailyDiv.innerHTML = html;
+                    dailyDiv.querySelectorAll('.music-item').forEach(function(el) {
+                        el.addEventListener('click', function() {
+                            var song = {
+                                id: this.dataset.id,
+                                title: this.dataset.title,
+                                artist: this.dataset.artist,
+                                mp3: this.dataset.mp3,
+                                lyric: this.dataset.lyric || null
+                            };
+                            playSong(song);
+                        });
+                    });
+                    loadCoversForItems('#daily-recommendations');
+                }
+
+                function performSearchMusic(keyword) {
+                    var container = document.getElementById('music-results-container');
+                    var dailyDiv = document.getElementById('daily-recommendations');
+                    var refreshBtn = document.getElementById('refreshDailyBtn');
+                    if (!container) return;
+
+                    if (dailyDiv) dailyDiv.style.display = 'none';
+                    container.style.display = 'block';
+                    if (refreshBtn) refreshBtn.classList.add('hidden');
+
+                    if (!keyword.trim()) {
+                        container.style.display = 'none';
+                        if (dailyDiv) dailyDiv.style.display = 'block';
+                        if (refreshBtn) refreshBtn.classList.remove('hidden');
+                        return;
+                    }
+                    var results = searchPlaylist(keyword);
+                    if (results.length === 0) {
+                        container.innerHTML = '<div class="empty-message">未找到相关歌曲</div>';
+                        return;
+                    }
+                    var html = '<div class="music-results-list">';
+                    results.forEach(function(song) {
+                        var isPlaying = (currentSong && currentSong.id == song.id);
+                        html += '<div class="music-item' + (isPlaying ? ' playing' : '') + '" data-id="' + song.id + '" data-title="' + escapeHtml(song.title) + '" data-artist="' + escapeHtml(song.artist) + '" data-mp3="' + song.mp3 + '" data-lyric="' + (song.lyric || '') + '">';
+                        html += '<div class="music-cover">🎵</div>';
+                        html += '<div class="music-info"><div class="music-title">' + escapeHtml(song.title) + '</div><div class="music-artist">' + escapeHtml(song.artist) + '</div></div>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                    container.querySelectorAll('.music-item').forEach(function(el) {
+                        el.addEventListener('click', function() {
+                            var song = {
+                                id: this.dataset.id,
+                                title: this.dataset.title,
+                                artist: this.dataset.artist,
+                                mp3: this.dataset.mp3,
+                                lyric: this.dataset.lyric || null
+                            };
+                            playSong(song);
+                        });
+                    });
+                    loadCoversForItems('#music-results-container');
+                }
+
+                async function loadMusicPlaylist() {
+                    try {
+                        var response = await fetch('music.js');
+                        if (!response.ok) throw new Error('无法加载 music.js');
+                        var scriptText = await response.text();
+                        var fn = new Function('window', 'console', '"use strict";\n' + scriptText + '\nreturn PLAYLIST;');
+                        var result = fn(window, console);
+                        if (result && Array.isArray(result) && result.length > 0) {
+                            PLAYLIST = result;
+                            try { localStorage.setItem('music_playlist', JSON.stringify(PLAYLIST)); } catch(e) {}
+                            renderRecommendations();
+                        } else {
+                            throw new Error('歌单数据无效');
+                        }
+                    } catch (e) {
+                        console.warn('加载 music.js 失败，尝试从缓存恢复', e);
+                        try {
+                            var saved = localStorage.getItem('music_playlist');
+                            if (saved) {
+                                var parsed = JSON.parse(saved);
+                                if (Array.isArray(parsed) && parsed.length) {
+                                    PLAYLIST = parsed;
+                                    renderRecommendations();
+                                    return;
+                                }
+                            }
+                        } catch(ex) {}
+                        var dailyDiv = document.getElementById('daily-recommendations');
+                        if (dailyDiv) dailyDiv.innerHTML = '<div class="empty-message">❌ 歌单加载失败，请确保 music.js 存在</div>';
+                    }
+                }
+
+                function renderMusicGrid() {
+                    // 请求通知权限（全局一次）
+                    requestNotificationPermission();
+
+                    var grid = document.getElementById('appsGrid');
+                    grid.innerHTML = '<div class="music-section">' +
+                        '<div class="daily-header">' +
+                            '<div class="daily-title">🎵 热门推荐</div>' +
+                            '<button class="refresh-daily ' + themeClass + '" id="refreshDailyBtn">↻ 换一批</button>' +
+                        '</div>' +
+                        '<div id="daily-recommendations" class="loading">加载歌单...</div>' +
+                        '<div id="music-results-container" style="display:none;"></div>' +
+                    '</div>';
+                    var refreshBtn = document.getElementById('refreshDailyBtn');
+                    if (refreshBtn) {
+                        refreshBtn.addEventListener('click', function() {
+                            renderRecommendations();
+                        });
+                    }
+                    loadMusicPlaylist();
+                }
+
+                // ============================================================
+                //  其他分区渲染
+                // ============================================================
+                var grid = document.getElementById('appsGrid');
+                var navItems = document.querySelectorAll('.nav-item');
+                var searchInput = document.getElementById('searchInput');
+                var searchCancelBtn = document.getElementById('searchCancelBtn');
+                var logo = document.getElementById('logoIcon');
+
+                var currentCategory = 'apps';
+                var currentSearchKeyword = '';
+
+                var iconCache = {};
+                async function extractIconUrlFromDetailPage(detailUrl) {
+                    var normalizedUrl = detailUrl.trim();
+                    if (!normalizedUrl.startsWith('http')) {
+                        normalizedUrl = 'https://' + normalizedUrl;
+                    }
+                    var controller = new AbortController();
+                    var timeoutId = setTimeout(function() { controller.abort(); }, 5000);
+                    try {
+                        var response = await fetch(normalizedUrl, {
+                            signal: controller.signal,
+                            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+                        });
+                        clearTimeout(timeoutId);
+                        if (!response.ok) throw new Error();
+                        var html = await response.text();
+                        var imgSrc = null;
+                        var match = html.match(/src=["'](https?:\/\/loadly\.io\/image\/view\/app_icons\/[a-f0-9]+\/\d+)["']/i);
+                        if (match) {
+                            imgSrc = match[1];
+                        } else {
+                            match = html.match(/src=["'](\/image\/view\/app_icons\/[a-f0-9]+\/\d+)["']/i);
+                            if (match) {
+                                imgSrc = 'https://loadly.io' + match[1];
+                            }
+                        }
+                        if (!imgSrc) throw new Error();
+                        var idMatch = imgSrc.match(/\/app_icons\/([a-f0-9]+)\/\d+/i);
+                        if (!idMatch) throw new Error();
+                        return 'https://loadly.io/image/view/app_icons/' + idMatch[1] + '/120';
+                    } catch (e) {
+                        clearTimeout(timeoutId);
+                        return null;
+                    }
+                }
+
+                async function getAppIconUrl(app) {
+                    if (app.icon) return app.icon;
+                    if (iconCache[app.url]) return iconCache[app.url];
+                    var iconUrl = await extractIconUrlFromDetailPage(app.url);
+                    if (iconUrl) {
+                        iconCache[app.url] = iconUrl;
+                    }
+                    return iconUrl;
+                }
+
+                var currentBatchManager = {
+                    allItems: [],
+                    renderedCount: 0,
+                    batchSize: 4,
+                    isLoadingMore: false,
+                    scrollHandler: null,
+                    container: null
+                };
+
+                function resetBatchManager() {
+                    if (currentBatchManager.scrollHandler) {
+                        window.removeEventListener('scroll', currentBatchManager.scrollHandler);
+                        currentBatchManager.scrollHandler = null;
+                    }
+                    currentBatchManager.allItems = [];
+                    currentBatchManager.renderedCount = 0;
+                    currentBatchManager.isLoadingMore = false;
+                }
+
+                function handleDownloadClick(url, event) {
+                    if (event) event.stopPropagation();
+                    var downloadIframe = document.getElementById('downloadIframe');
+                    var downloadOverlay = document.getElementById('downloadOverlay');
+                    if (downloadIframe && downloadOverlay) {
+                        downloadIframe.src = url;
+                        downloadOverlay.style.display = 'flex';
+                    }
+                }
+
+                function renderAppCardsRange(items, startIndex, endIndex, container, themeClass) {
+                    for (var i = startIndex; i < endIndex && i < items.length; i++) {
+                        var app = items[i];
+                        var card = document.createElement('div');
+                        card.className = 'app-card';
+                        card.setAttribute('data-app-id', app.id);
+                        
+                        var iconDiv = document.createElement('div');
+                        iconDiv.className = 'app-icon';
+                        var iconInner = document.createElement('div');
+                        iconInner.style.cssText = 'width:60px;height:60px;overflow:hidden;border-radius:15px;display:flex;align-items:center;justify-content:center;background:#3a3a3c;';
+                        iconInner.id = 'icon-' + app.id;
+                        iconInner.innerHTML = '<div style="font-size:32px;color:#888;">📱</div>';
+                        iconDiv.appendChild(iconInner);
+                        
+                        var infoDiv = document.createElement('div');
+                        infoDiv.className = 'app-info';
+                        infoDiv.innerHTML = '<div class="app-name">' + escapeHtml(app.name) + ' <span class="app-platform">' + (app.platform === 'ios' ? 'iOS' : 'Android') + '</span></div>' +
+                            '<div class="app-url-preview">' + app.url + '</div>' +
+                            '<div style="margin-top:6px;"><span class="download-badge ' + themeClass + '" data-url="' + app.url + '">下载</span></div>';
+                        
+                        card.appendChild(iconDiv);
+                        card.appendChild(infoDiv);
+                        container.appendChild(card);
+                        
+                        (function(appUrl) {
+                            var badge = card.querySelector('.download-badge');
+                            if (badge) {
+                                badge.addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    handleDownloadClick(appUrl, e);
+                                });
+                            }
+                        })(app.url);
+                        
+                        (function(item, id) {
+                            (async function() {
+                                var imgUrl = await getAppIconUrl(item);
+                                var iconContainer = document.getElementById('icon-' + id);
+                                if (iconContainer && imgUrl) {
+                                    var img = document.createElement('img');
+                                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:15px;';
+                                    img.src = imgUrl;
+                                    img.onerror = function() { 
+                                        this.style.display = 'none';
+                                        this.parentNode.innerHTML = '<div style="font-size:38px;">📱</div>';
+                                    };
+                                    iconContainer.innerHTML = '';
+                                    iconContainer.appendChild(img);
+                                }
+                            })();
+                        })(app, app.id);
+                    }
+                }
+
+                function loadMoreApps() {
+                    if (currentBatchManager.isLoadingMore) return;
+                    if (currentBatchManager.renderedCount >= currentBatchManager.allItems.length) return;
+                    
+                    currentBatchManager.isLoadingMore = true;
+                    var start = currentBatchManager.renderedCount;
+                    var end = Math.min(start + currentBatchManager.batchSize, currentBatchManager.allItems.length);
+                    
+                    renderAppCardsRange(currentBatchManager.allItems, start, end, currentBatchManager.container, themeClass);
+                    currentBatchManager.renderedCount = end;
+                    currentBatchManager.isLoadingMore = false;
+                    
+                    if (currentBatchManager.renderedCount < currentBatchManager.allItems.length) {
+                        if (!currentBatchManager.scrollHandler) {
+                            var handler = function() {
+                                var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                                var windowHeight = window.innerHeight;
+                                var docHeight = document.documentElement.scrollHeight;
+                                if (scrollTop + windowHeight >= docHeight - 300) {
+                                    loadMoreApps();
+                                }
+                            };
+                            window.addEventListener('scroll', handler);
+                            currentBatchManager.scrollHandler = handler;
+                        }
+                    } else {
+                        if (currentBatchManager.scrollHandler) {
+                            window.removeEventListener('scroll', currentBatchManager.scrollHandler);
+                            currentBatchManager.scrollHandler = null;
+                        }
+                    }
+                }
+
+                async function initLazyAppGrid(filteredApps) {
+                    if (!filteredApps.length) {
+                        grid.innerHTML = '<div class="empty-message">暂无文件</div>';
+                        return;
+                    }
+                    resetBatchManager();
+                    currentBatchManager.allItems = filteredApps;
+                    currentBatchManager.container = grid;
+                    currentBatchManager.renderedCount = 0;
+                    
+                    grid.innerHTML = '';
+                    
+                    var firstBatchEnd = Math.min(currentBatchManager.batchSize, filteredApps.length);
+                    renderAppCardsRange(filteredApps, 0, firstBatchEnd, grid, themeClass);
+                    currentBatchManager.renderedCount = firstBatchEnd;
+                    
+                    if (currentBatchManager.renderedCount < filteredApps.length) {
+                        var handler = function() {
+                            var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                            var windowHeight = window.innerHeight;
+                            var docHeight = document.documentElement.scrollHeight;
+                            if (scrollTop + windowHeight >= docHeight - 300) {
+                                loadMoreApps();
+                            }
+                        };
+                        window.addEventListener('scroll', handler);
+                        currentBatchManager.scrollHandler = handler;
+                    }
+                }
+
+                // ==================== 电影分区 ====================
+                function getFullUrl(shortUrl) {
+                    if (!shortUrl) return '';
+                    if (shortUrl.startsWith('http')) return shortUrl;
+                    return 'https://loadly.io/' + shortUrl;
+                }
+
+                async function extractDirectUrl(shareUrl, retry) {
+                    retry = retry || 0;
+                    var controller = new AbortController();
+                    var timeoutId = setTimeout(function() { controller.abort(); }, 10000);
+                    try {
+                        var response = await fetch(shareUrl, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        var html = await response.text();
+                        var patterns = [
+                            /https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.mp4[^"'\s]*/i,
+                            /https:\/\/[a-z0-9]+\.loadly\.io\/[a-f0-9]+\.mp4[^"'\s]*/i,
+                            /https:\/\/[^\s"']+\.mp4/i
+                        ];
+                        for (var i = 0; i < patterns.length; i++) {
+                            var match = html.match(patterns[i]);
+                            if (match) return match[0];
+                        }
+                        var fileNameMatch = html.match(/([a-f0-9]{32,})\.mp4/i);
+                        if (fileNameMatch) return 'https://app-storage.loadly.io/' + fileNameMatch[1] + '.mp4';
+                        throw new Error('未找到视频直链');
+                    } catch (err) {
+                        clearTimeout(timeoutId);
+                        if (retry < 2) {
+                            await new Promise(function(r) { setTimeout(r, 1000); });
+                            return extractDirectUrl(shareUrl, retry + 1);
+                        }
+                        throw err;
+                    }
+                }
+
+                var currentMovieMedia = null;
+                var currentEpisodeIndex = 0;
+                var movieVideo = document.getElementById('movieVideo');
+                var movieOverlay = document.getElementById('moviePlayerOverlay');
+                var movieTitleSpan = document.getElementById('moviePlayerTitle');
+                var movieEpisodesArea = document.getElementById('movieEpisodesArea');
+                var movieEpisodesGrid = document.getElementById('movieEpisodesGrid');
+                var closeMovieBtn = document.getElementById('closeMovieBtn');
+
+                async function playMovieByShareUrl(shareUrl) {
+                    if (!movieVideo) return;
+                    try {
+                        var fullUrl = getFullUrl(shareUrl);
+                        var direct = await extractDirectUrl(fullUrl);
+                        movieVideo.src = direct;
+                        movieVideo.load();
+                        movieVideo.play().catch(function(e) { console.log('自动播放被阻止'); });
+                    } catch(e) {
+                        alert('播放失败: ' + e.message);
+                    }
+                }
+
+                function renderMovieEpisodes() {
+                    if (!currentMovieMedia || currentMovieMedia.type !== 'tv') {
+                        movieEpisodesArea.style.display = 'none';
+                        return;
+                    }
+                    movieEpisodesArea.style.display = 'block';
+                    movieEpisodesGrid.innerHTML = '';
+                    currentMovieMedia.episodes.forEach(function(ep, idx) {
+                        var btn = document.createElement('button');
+                        btn.className = 'movie-episode-btn';
+                        if (idx === currentEpisodeIndex) btn.classList.add(themeClass);
+                        btn.textContent = ep.name;
+                        btn.addEventListener('click', function() {
+                            (async function() {
+                                currentEpisodeIndex = idx;
+                                movieTitleSpan.textContent = currentMovieMedia.title + ' · ' + ep.name;
+                                renderMovieEpisodes();
+                                await playMovieByShareUrl(ep.url);
+                            })();
+                        });
+                        movieEpisodesGrid.appendChild(btn);
+                    });
+                }
+
+                async function openMoviePlayer(mediaItem) {
+                    currentMovieMedia = mediaItem;
+                    currentEpisodeIndex = 0;
+                    if (movieVideo) {
+                        movieVideo.pause();
+                        movieVideo.src = '';
+                    }
+                    if (mediaItem.type === 'movie') {
+                        movieTitleSpan.textContent = mediaItem.title;
+                        movieEpisodesArea.style.display = 'none';
+                        await playMovieByShareUrl(mediaItem.episodes[0].url);
+                    } else {
+                        movieTitleSpan.textContent = mediaItem.title + ' · ' + mediaItem.episodes[0].name;
+                        renderMovieEpisodes();
+                        await playMovieByShareUrl(mediaItem.episodes[0].url);
+                    }
+                    movieOverlay.style.display = 'flex';
+                }
+
+                function closeMoviePlayer() {
+                    if (movieVideo) movieVideo.pause();
+                    movieOverlay.style.display = 'none';
+                }
+                if (closeMovieBtn) closeMovieBtn.addEventListener('click', closeMoviePlayer);
+
+                function renderMoviesGrid(searchKeyword) {
+                    if (!movieData.length) {
+                        grid.innerHTML = '<div class="empty-message">🎬 暂无电影数据</div>';
+                        return;
+                    }
+                    var filtered = movieData;
+                    if (searchKeyword && searchKeyword.trim()) {
+                        var kw = searchKeyword.trim().toLowerCase();
+                        filtered = movieData.filter(function(m) { return m.title.toLowerCase().includes(kw); });
+                    }
+                    if (filtered.length === 0) {
+                        grid.innerHTML = '<div class="empty-message">🎬 未找到相关影片</div>';
+                        return;
+                    }
+                    var html = '';
+                    filtered.forEach(function(movie) {
+                        html += '<div class="movie-card" data-id="' + movie.id + '"><div class="movie-title">' + escapeHtml(movie.title) + '</div></div>';
+                    });
+                    grid.innerHTML = html;
+                    document.querySelectorAll('.movie-card').forEach(function(card) {
+                        var id = card.dataset.id;
+                        var movie = movieData.find(function(m) { return m.id === id; });
+                        if (movie) card.addEventListener('click', function() { openMoviePlayer(movie); });
+                    });
+                }
+
+                // ==================== 图书分区 (小说 + 漫画) ====================
+                var readerOverlay = document.getElementById('readerOverlay');
+                var closeReaderBtn = document.getElementById('closeReaderBtn');
+                var readerTitle = document.getElementById('readerTitle');
+                var progressInfoSpan = document.getElementById('progressInfo');
+                var readerContentArea = document.getElementById('readerContentArea');
+                var currentBookId = null, saveTimeout = null, cancelDownload = false;
+
+                // ---- 小说相关函数 ----
+                function saveProgress(bookId, percent) { 
+                    try { 
+                        var p = JSON.parse(localStorage.getItem('book_progress_scroll') || '{}'); 
+                        p[bookId] = percent; 
+                        localStorage.setItem('book_progress_scroll', JSON.stringify(p)); 
+                    } catch(e) {} 
+                }
+                function loadProgress(bookId) { 
+                    try { 
+                        return JSON.parse(localStorage.getItem('book_progress_scroll') || '{}')[bookId] || 0; 
+                    } catch(e) { return 0; } 
+                }
+                function saveFullContent(bookId, content) { 
+                    try { localStorage.setItem('book_full_' + bookId, content); } catch(e) {} 
+                }
+                function getFullContent(bookId) { 
+                    try { return localStorage.getItem('book_full_' + bookId); } catch(e) { return null; } 
+                }
+                async function getTxtDirectUrl(shareUrl, retry) {
+                    retry = retry || 0;
+                    var c = new AbortController();
+                    var t = setTimeout(function() { c.abort(); }, 15000);
+                    try {
+                        var r = await fetch(shareUrl, { signal: c.signal });
+                        clearTimeout(t);
+                        var html = await r.text();
+                        var m = html.match(/https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.txt[^"'\s]*/);
+                        if (m) return m[0];
+                        throw new Error('未找到直链');
+                    } catch(e) {
+                        clearTimeout(t);
+                        if (retry < 2) {
+                            await new Promise(function(r) { setTimeout(r, 1000); });
+                            return getTxtDirectUrl(shareUrl, retry + 1);
+                        }
+                        throw e;
+                    }
+                }
+                async function streamAndCache(book) {
+                    cancelDownload = false;
+                    var direct = await getTxtDirectUrl(book.url);
+                    var res = await fetch(direct);
+                    var reader = res.body.getReader();
+                    var decoder = new TextDecoder();
+                    var full = '';
+                    while (true) {
+                        if (cancelDownload) break;
+                        var result = await reader.read();
+                        if (result.done) break;
+                        full += decoder.decode(result.value, { stream: true });
+                    }
+                    saveFullContent(book.id, full);
+                    return full;
+                }
+                function updateProgressDisplay() {
+                    if (progressInfoSpan && readerContentArea) {
+                        var scrollContainer = document.getElementById('scrollContent');
+                        if (scrollContainer) {
+                            var max = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+                            progressInfoSpan.textContent = max > 0 ? Math.floor(scrollContainer.scrollTop / max * 100) + '%' : '0%';
+                        }
+                    }
+                }
+
+                // ---- 打开小说 ----
+                async function openBook(book) {
+                    readerOverlay.style.display = 'flex';
+                    readerTitle.textContent = book.name;
+                    currentBookId = book.id;
+                    
+                    readerContentArea.innerHTML = '<div id="scrollContent" class="scroll-content" style="padding:20px;font-size:17px;line-height:1.65;font-family:Georgia,serif;color:#ddd;background:#0f0f12;">📖 加载中...</div>';
+                    var scrollContainer = document.getElementById('scrollContent');
+                    
+                    try {
+                        var full = getFullContent(book.id) || await streamAndCache(book);
+                        scrollContainer.innerHTML = '<div style="white-space:pre-wrap;">' + full.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>') + '</div>';
+                        var pct = loadProgress(book.id);
+                        if (pct > 0) scrollContainer.scrollTop = (pct / 100) * (scrollContainer.scrollHeight - scrollContainer.clientHeight);
+                        updateProgressDisplay();
+                        var handler = function() {
+                            clearTimeout(saveTimeout);
+                            saveTimeout = setTimeout(function() {
+                                if (currentBookId) {
+                                    var max = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+                                    saveProgress(currentBookId, max > 0 ? scrollContainer.scrollTop / max * 100 : 0);
+                                    updateProgressDisplay();
+                                }
+                            }, 200);
+                        };
+                        scrollContainer.addEventListener('scroll', handler);
+                        window.currentCleanup = function() { scrollContainer.removeEventListener('scroll', handler); };
+                    } catch(e) {
+                        scrollContainer.innerHTML = '<div style="text-align:center;padding:40px;">❌ 加载失败<br><button class="retry-btn" onclick="openBook(txtBooks.find(function(b){return b.id===\'' + book.id + '\';}))">重试</button></div>';
+                    }
+                }
+
+                // ==================== 漫画阅读器核心 ====================
+                var ZIP_PATTERNS = [
+                    /https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.zip(?:\?[^\s"']*)?/i,
+                    /https:\/\/[a-z0-9]+\.loadly\.io\/[a-f0-9]+\.zip(?:\?[^\s"']*)?/i,
+                    /https:\/\/[^\s"']+\.zip/i,
+                    /https:\/\/[^\s"']+\.cbz/i
+                ];
+
+                async function extractZipDirectUrl(shareUrl, retry) {
+                    retry = retry || 0;
+                    var normalized = shareUrl.trim();
+                    if (!normalized.startsWith('http')) {
+                        if (normalized.startsWith('loadly.io/')) normalized = 'https://' + normalized;
+                        else normalized = 'https://loadly.io/' + normalized.replace(/^\/+/, '');
+                    }
+                    var controller = new AbortController();
+                    var timeoutId = setTimeout(function() { controller.abort(); }, 12000);
+                    try {
+                        var response = await fetch(normalized, {
+                            signal: controller.signal,
+                            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ComicLoader)' }
+                        });
+                        clearTimeout(timeoutId);
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        var html = await response.text();
+                        for (var i = 0; i < ZIP_PATTERNS.length; i++) {
+                            var match = html.match(ZIP_PATTERNS[i]);
+                            if (match) return match[0];
+                        }
+                        var fallback = html.match(/https:\/\/[^\s"']+\.(?:zip|cbz)(?:\?[^\s"']*)?/i);
+                        if (fallback) return fallback[0];
+                        throw new Error('未找到ZIP直链');
+                    } catch (err) {
+                        clearTimeout(timeoutId);
+                        if (retry < 2) {
+                            await new Promise(function(r) { setTimeout(r, 800); });
+                            return extractZipDirectUrl(normalized, retry + 1);
+                        }
+                        throw err;
+                    }
+                }
+
+                // IndexedDB 缓存
+                var DB_NAME = 'ComicCacheDB';
+                var STORE_NAME = 'comicData';
+                var DB_VERSION = 1;
+
+                function openDB() {
+                    return new Promise(function(resolve, reject) {
+                        var request = indexedDB.open(DB_NAME, DB_VERSION);
+                        request.onupgradeneeded = function(event) {
+                            var db = event.target.result;
+                            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                            }
+                        };
+                        request.onsuccess = function() { resolve(request.result); };
+                        request.onerror = function() { reject(request.error); };
+                    });
+                }
+
+                function getCacheKey(link) {
+                    var full = link.trim();
+                    if (!full.startsWith('http')) {
+                        full = 'https://loadly.io/' + full.replace(/^\/+/, '');
+                    }
+                    return full.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+                }
+
+                async function hasCachedComic(link) {
+                    try {
+                        var db = await openDB();
+                        var key = getCacheKey(link);
+                        return new Promise(function(resolve) {
+                            var tx = db.transaction(STORE_NAME, 'readonly');
+                            var store = tx.objectStore(STORE_NAME);
+                            var getRequest = store.get(key);
+                            getRequest.onsuccess = function() { resolve(!!getRequest.result); };
+                            getRequest.onerror = function() { resolve(false); };
+                            tx.oncomplete = function() { db.close(); };
+                        });
+                    } catch { return false; }
+                }
+
+                async function getCachedComic(link) {
+                    try {
+                        var db = await openDB();
+                        var key = getCacheKey(link);
+                        return new Promise(function(resolve, reject) {
+                            var tx = db.transaction(STORE_NAME, 'readonly');
+                            var store = tx.objectStore(STORE_NAME);
+                            var getRequest = store.get(key);
+                            getRequest.onsuccess = function() { resolve(getRequest.result || null); };
+                            getRequest.onerror = function() { reject(getRequest.error); };
+                            tx.oncomplete = function() { db.close(); };
+                        });
+                    } catch { return null; }
+                }
+
+                async function saveCachedComic(link, imagesData, totalPages) {
+                    try {
+                        var db = await openDB();
+                        var key = getCacheKey(link);
+                        
+                        var imageEntries = [];
+                        for (var i = 0; i < imagesData.length && i < totalPages; i++) {
+                            var img = imagesData[i];
+                            if (img.blobUrl) {
+                                try {
+                                    var response = await fetch(img.blobUrl);
+                                    var blob = await response.blob();
+                                    imageEntries.push({
+                                        name: img.name || 'page_' + (i+1),
+                                        blob: blob,
+                                        type: blob.type || 'image/jpeg'
+                                    });
+                                } catch (e) {
+                                    imageEntries.push({ name: img.name || 'page_' + (i+1), blob: null, type: null });
+                                }
+                            } else {
+                                imageEntries.push({ name: img.name || 'page_' + (i+1), blob: null, type: null });
+                            }
+                        }
+
+                        var cacheData = {
+                            id: key,
+                            total: totalPages,
+                            images: imageEntries,
+                            timestamp: Date.now()
+                        };
+
+                        return new Promise(function(resolve, reject) {
+                            var tx = db.transaction(STORE_NAME, 'readwrite');
+                            var store = tx.objectStore(STORE_NAME);
+                            var putRequest = store.put(cacheData);
+                            putRequest.onsuccess = function() { resolve(); };
+                            putRequest.onerror = function() { reject(putRequest.error); };
+                            tx.oncomplete = function() { db.close(); };
+                        });
+                    } catch (e) {
+                        console.warn('缓存保存失败:', e);
+                    }
+                }
+
+                async function loadComicFromCache(cachedData) {
+                    var images = cachedData.images;
+                    comicTotalPages = cachedData.total || images.length;
+                    
+                    createComicPlaceholders(comicTotalPages);
+                    comicCurrentMeta = [];
+                    comicLoadedCount = 0;
+
+                    var initialLoad = Math.min(COMIC_BATCH_SIZE, images.length);
+                    for (var i = 0; i < initialLoad && i < comicTotalPages; i++) {
+                        var imgData = images[i];
+                        if (imgData.blob) {
+                            try {
+                                var url = URL.createObjectURL(imgData.blob);
+                                comicCurrentMeta[i] = {
+                                    name: imgData.name || 'page_' + (i+1),
+                                    blobUrl: url,
+                                    loaded: true,
+                                    file: null
+                                };
+                                comicLoadedCount++;
+                                setComicPageImage(i, url, imgData.name || 'page_' + (i+1));
+                            } catch (e) {
+                                console.warn('恢复缓存图片失败:', i, e);
+                                comicCurrentMeta[i] = {
+                                    name: imgData.name || 'page_' + (i+1),
+                                    blobUrl: null,
+                                    loaded: false,
+                                    file: null
+                                };
+                            }
+                        } else {
+                            comicCurrentMeta[i] = {
+                                name: imgData.name || 'page_' + (i+1),
+                                blobUrl: null,
+                                loaded: false,
+                                file: null
+                            };
+                        }
+                    }
+
+                    for (var k = initialLoad; k < comicTotalPages; k++) {
+                        var imgData2 = images[k] || { name: 'page_' + (k+1) };
+                        comicCurrentMeta[k] = {
+                            name: imgData2.name || 'page_' + (k+1),
+                            blobUrl: null,
+                            loaded: false,
+                            file: null
+                        };
+                    }
+
+                    return comicLoadedCount;
+                }
+
+                function checkComicLoadMoreFromCache(cachedData) {
+                    if (!comicScrollWrapper || comicIsLoadingMore || comicLoadedCount >= comicTotalPages) return;
+
+                    var scrollTop = comicScrollWrapper.scrollTop;
+                    var pageHeight = window.innerHeight;
+                    var visibleIndex = Math.round(scrollTop / pageHeight);
+                    
+                    var loadedBatchCount = Math.ceil(comicLoadedCount / COMIC_BATCH_SIZE) * COMIC_BATCH_SIZE;
+                    if (visibleIndex >= loadedBatchCount - COMIC_TRIGGER_INDEX - 1 && comicLoadedCount < comicTotalPages) {
+                        var nextStart = comicLoadedCount;
+                        var toLoad = Math.min(COMIC_BATCH_SIZE, comicTotalPages - comicLoadedCount);
+                        if (toLoad > 0) {
+                            comicIsLoadingMore = true;
+                            (async function() {
+                                var images = cachedData.images;
+                                for (var i = nextStart; i < Math.min(nextStart + toLoad, images.length); i++) {
+                                    var imgData = images[i];
+                                    if (imgData && imgData.blob) {
+                                        try {
+                                            var url = URL.createObjectURL(imgData.blob);
+                                            comicCurrentMeta[i] = {
+                                                name: imgData.name || 'page_' + (i+1),
+                                                blobUrl: url,
+                                                loaded: true,
+                                                file: null
+                                            };
+                                            comicLoadedCount++;
+                                            setComicPageImage(i, url, imgData.name || 'page_' + (i+1));
+                                        } catch (e) {
+                                            console.warn('从缓存加载失败:', i, e);
+                                        }
+                                    }
+                                }
+                                comicIsLoadingMore = false;
+                                if (comicLoadedCount < comicTotalPages) {
+                                    setTimeout(function() { checkComicLoadMoreFromCache(cachedData); }, 300);
+                                }
+                            })();
+                        }
+                    }
+                }
+
+                // 漫画进度
+                var COMIC_PROGRESS_KEY = 'comic_reader_progress_v4';
+
+                function getComicProgress(link) {
+                    try {
+                        var data = JSON.parse(localStorage.getItem(COMIC_PROGRESS_KEY) || '{}');
+                        var key = getCacheKey(link);
+                        return data[key] || 0;
+                    } catch { return 0; }
+                }
+
+                function saveComicProgress(link, pageIndex) {
+                    try {
+                        var data = JSON.parse(localStorage.getItem(COMIC_PROGRESS_KEY) || '{}');
+                        var key = getCacheKey(link);
+                        data[key] = pageIndex;
+                        localStorage.setItem(COMIC_PROGRESS_KEY, JSON.stringify(data));
+                    } catch {}
+                }
+
+                // 漫画状态变量
+                var comicAllEntries = [];
+                var comicCurrentMeta = [];
+                var comicPageElements = [];
+                var comicIsActive = false;
+                var comicAbortSignal = null;
+                var comicIsLoadingMore = false;
+                var comicLoadedCount = 0;
+                var comicTotalPages = 0;
+                var comicZipBlobCache = null;
+                var comicCurrentLink = '';
+                var comicSaveTimer = null;
+                var comicLastSavedPage = -1;
+                var comicIsFromCache = false;
+                var comicScrollWrapper = null;
+
+                var COMIC_BATCH_SIZE = 10;
+                var COMIC_TRIGGER_INDEX = 4;
+
+                function showComicLoadingTip(show) {
+                    var tip = document.getElementById('comicLoadingTip');
+                    if (tip) {
+                        tip.style.display = show ? 'flex' : 'none';
+                    }
+                }
+
+                function createComicPlaceholders(count) {
+                    if (!comicScrollWrapper) return;
+                    comicScrollWrapper.innerHTML = '';
+                    comicPageElements = [];
+                    for (var i = 0; i < count; i++) {
+                        var card = document.createElement('div');
+                        card.className = 'comic-page-card';
+                        card.setAttribute('data-index', i);
+                        var placeholder = document.createElement('div');
+                        placeholder.className = 'comic-loading-placeholder';
+                        placeholder.innerHTML = '<div class="comic-placeholder-spinner"></div><span>加载第 ' + (i+1) + ' 页...</span>';
+                        card.appendChild(placeholder);
+                        comicScrollWrapper.appendChild(card);
+                        comicPageElements.push(card);
+                    }
+                }
+
+                function setComicPageImage(index, blobUrl, name) {
+                    if (!comicPageElements[index]) return;
+                    var card = comicPageElements[index];
+                    var existing = card.querySelector('.comic-img');
+                    if (existing) {
+                        existing.src = blobUrl;
+                        return;
+                    }
+                    var img = document.createElement('img');
+                    img.className = 'comic-img';
+                    img.src = blobUrl;
+                    img.alt = name || 'page_' + (index+1);
+                    img.draggable = false;
+                    card.innerHTML = '';
+                    card.appendChild(img);
+                }
+
+                async function parseZipForImages(zipBlob) {
+                    if (typeof JSZip === 'undefined') {
+                        throw new Error('JSZip 库未加载，请刷新页面重试');
+                    }
+                    var zip = await JSZip.loadAsync(zipBlob);
+                    var all = [];
+                    zip.forEach(function(path, file) {
+                        if (!file.dir) all.push({ path: path, file: file });
+                    });
+                    var exts = ['.jpg','.jpeg','.png','.gif','.webp','.bmp','.jfif'];
+                    var images = all.filter(function(e) {
+                        var lower = e.path.toLowerCase();
+                        return exts.some(function(ext) { return lower.endsWith(ext); });
+                    });
+                    images.sort(function(a, b) {
+                        return a.path.localeCompare(b.path, undefined, { numeric: true });
+                    });
+                    if (!images.length) throw new Error('未找到图片');
+                    return images;
+                }
+
+                async function loadComicBatch(startIndex, count) {
+                    var endIndex = Math.min(startIndex + count, comicAllEntries.length);
+                    var batch = comicAllEntries.slice(startIndex, endIndex);
+                    if (batch.length === 0) return;
+
+                    if (!comicZipBlobCache) {
+                        throw new Error('ZIP数据未缓存');
+                    }
+
+                    for (var idx = 0; idx < batch.length; idx++) {
+                        var entry = batch[idx];
+                        var globalIdx = startIndex + idx;
+                        if (globalIdx >= comicCurrentMeta.length) continue;
+                        if (comicCurrentMeta[globalIdx].loaded) continue;
+                        try {
+                            var blob = await entry.file.async('blob');
+                            var url = URL.createObjectURL(blob);
+                            comicCurrentMeta[globalIdx].blobUrl = url;
+                            comicCurrentMeta[globalIdx].loaded = true;
+                            comicLoadedCount++;
+                            setComicPageImage(globalIdx, url, entry.path);
+                        } catch (e) {
+                            console.warn('加载失败:', globalIdx, e);
+                        }
+                    }
+                }
+
+                function checkComicLoadMore() {
+                    if (!comicScrollWrapper || comicIsLoadingMore || comicLoadedCount >= comicAllEntries.length || !comicAllEntries.length) return;
+
+                    var scrollTop = comicScrollWrapper.scrollTop;
+                    var pageHeight = window.innerHeight;
+                    var visibleIndex = Math.round(scrollTop / pageHeight);
+                    
+                    var loadedBatchCount = Math.ceil(comicLoadedCount / COMIC_BATCH_SIZE) * COMIC_BATCH_SIZE;
+                    if (visibleIndex >= loadedBatchCount - COMIC_TRIGGER_INDEX - 1 && comicLoadedCount < comicAllEntries.length) {
+                        var nextStart = comicLoadedCount;
+                        var remaining = comicAllEntries.length - comicLoadedCount;
+                        var toLoad = Math.min(COMIC_BATCH_SIZE, remaining);
+                        if (toLoad > 0) {
+                            comicIsLoadingMore = true;
+                            loadComicBatch(nextStart, toLoad).finally(function() {
+                                comicIsLoadingMore = false;
+                                if (comicLoadedCount < comicAllEntries.length) {
+                                    setTimeout(checkComicLoadMore, 300);
+                                } else {
+                                    if (!comicIsFromCache && comicZipBlobCache) {
+                                        saveCachedComic(comicCurrentLink, comicCurrentMeta, comicTotalPages);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+
+                function saveComicCurrentProgress() {
+                    if (!comicCurrentLink || comicTotalPages === 0) return;
+                    if (comicSaveTimer) clearTimeout(comicSaveTimer);
+                    comicSaveTimer = setTimeout(function() {
+                        if (comicScrollWrapper) {
+                            var scrollTop = comicScrollWrapper.scrollTop;
+                            var pageHeight = window.innerHeight;
+                            var visibleIndex = Math.round(scrollTop / pageHeight);
+                            var safeIndex = Math.max(0, Math.min(visibleIndex, comicTotalPages - 1));
+                            if (safeIndex !== comicLastSavedPage) {
+                                saveComicProgress(comicCurrentLink, safeIndex);
+                                comicLastSavedPage = safeIndex;
+                            }
+                        }
+                        comicSaveTimer = null;
+                    }, 400);
+                }
+
+                function gotoComicProgress(savedIndex) {
+                    if (!comicScrollWrapper || !comicPageElements.length) return;
+                    if (savedIndex > 0 && savedIndex < comicTotalPages) {
+                        var target = savedIndex * window.innerHeight;
+                        setTimeout(function() {
+                            comicScrollWrapper.scrollTo({ top: target, behavior: 'smooth' });
+                            comicLastSavedPage = savedIndex;
+                            if (savedIndex >= comicLoadedCount) {
+                                var nextStart = comicLoadedCount;
+                                var remaining = comicAllEntries.length - comicLoadedCount;
+                                var toLoad = Math.min(COMIC_BATCH_SIZE, remaining);
+                                if (toLoad > 0) {
+                                    loadComicBatch(nextStart, toLoad).then(function() {
+                                        setTimeout(function() {
+                                            comicScrollWrapper.scrollTo({ top: target, behavior: 'smooth' });
+                                        }, 200);
+                                    });
+                                }
+                            }
+                        }, 150);
+                    } else {
+                        setTimeout(function() {
+                            comicScrollWrapper.scrollTo({ top: 0, behavior: 'instant' });
+                            comicLastSavedPage = 0;
+                        }, 60);
+                    }
+                }
+
+                // ---- 打开漫画 ----
+                async function openComic(comic) {
+                    if (typeof JSZip === 'undefined') {
+                        alert('JSZip 库未加载，请刷新页面重试');
+                        return;
+                    }
+
+                    readerOverlay.style.display = 'flex';
+                    readerTitle.textContent = '📖 ' + comic.name;
+                    currentBookId = comic.id;
+                    
+                    readerContentArea.innerHTML = '<div id="comicScrollWrapper" class="comic-scroll-wrapper"></div>';
+                    comicScrollWrapper = document.getElementById('comicScrollWrapper');
+                    
+                    comicAllEntries = [];
+                    comicCurrentMeta = [];
+                    comicPageElements = [];
+                    comicLoadedCount = 0;
+                    comicTotalPages = 0;
+                    comicZipBlobCache = null;
+                    comicIsLoadingMore = false;
+                    comicLastSavedPage = -1;
+                    comicIsFromCache = false;
+                    
+                    var comicUrl = comic.url.trim();
+                    if (!comicUrl) {
+                        comicScrollWrapper.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#555;font-size:1rem;">❌ 无效的漫画链接</div>';
+                        return;
+                    }
+                    
+                    comicCurrentLink = comicUrl;
+                    var savedIndex = getComicProgress(comicCurrentLink);
+                    
+                    showComicLoadingTip(true);
+                    
+                    var hasCache = await hasCachedComic(comicCurrentLink);
+                    
+                    if (hasCache) {
+                        comicIsFromCache = true;
+                        try {
+                            var cachedData = await getCachedComic(comicCurrentLink);
+                            if (cachedData && cachedData.images && cachedData.images.length > 0) {
+                                await loadComicFromCache(cachedData);
+                                showComicLoadingTip(false);
+                                
+                                var scrollHandler = function() {
+                                    checkComicLoadMoreFromCache(cachedData);
+                                    saveComicCurrentProgress();
+                                };
+                                comicScrollWrapper.addEventListener('scroll', scrollHandler);
+                                window.__comicCleanup = function() {
+                                    comicScrollWrapper.removeEventListener('scroll', scrollHandler);
+                                };
+                                
+                                if (savedIndex > 0 && savedIndex < comicTotalPages) {
+                                    gotoComicProgress(savedIndex);
+                                } else {
+                                    gotoComicProgress(0);
+                                }
+                                return;
+                            }
+                        } catch (err) {
+                            console.error('缓存加载失败，重新下载', err);
+                            comicIsFromCache = false;
+                        }
+                    }
+                    
+                    comicIsFromCache = false;
+                    try {
+                        var directUrl = await extractZipDirectUrl(comicCurrentLink);
+                        var response = await fetch(directUrl);
+                        if (!response.ok) throw new Error('下载失败 ' + response.status);
+                        
+                        var zipBlob = await response.blob();
+                        comicZipBlobCache = zipBlob;
+                        
+                        comicAllEntries = await parseZipForImages(zipBlob);
+                        comicTotalPages = comicAllEntries.length;
+                        
+                        comicCurrentMeta = comicAllEntries.map(function(e) {
+                            return { 
+                                name: e.path, 
+                                blobUrl: null, 
+                                loaded: false,
+                                file: e.file 
+                            };
+                        });
+
+                        createComicPlaceholders(comicTotalPages);
+                        
+                        var firstBatch = Math.min(COMIC_BATCH_SIZE, comicTotalPages);
+                        await loadComicBatch(0, firstBatch);
+                        
+                        showComicLoadingTip(false);
+                        
+                        var scrollHandler2 = function() {
+                            checkComicLoadMore();
+                            saveComicCurrentProgress();
+                        };
+                        comicScrollWrapper.addEventListener('scroll', scrollHandler2);
+                        window.__comicCleanup = function() {
+                            comicScrollWrapper.removeEventListener('scroll', scrollHandler2);
+                        };
+
+                        if (savedIndex > 0 && savedIndex < comicTotalPages) {
+                            gotoComicProgress(savedIndex);
+                        } else {
+                            gotoComicProgress(0);
+                        }
+
+                        setTimeout(function() {
+                            saveCachedComic(comicCurrentLink, comicCurrentMeta, comicTotalPages);
+                        }, 1000);
+
+                        if (comicLoadedCount < comicTotalPages) {
+                            setTimeout(checkComicLoadMore, 500);
+                        }
+
+                    } catch (err) {
+                        console.error(err);
+                        showComicLoadingTip(false);
+                        comicScrollWrapper.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#ff6666;font-size:1rem;padding:20px;text-align:center;">❌ 加载失败<br><span style="font-size:0.8rem;color:#888;">' + escapeHtml(err.message || '请检查链接') + '</span></div>';
+                    }
+                }
+
+                // ===== 渲染图书分区 =====
+                function renderBooksGrid(keyword) {
+                    var html = '<div class="books-section">';
+                    
+                    html += '<div class="section-header"><div class="section-title">📚 小说</div><span class="section-badge">' + txtBooks.length + ' 本</span></div>';
+                    var books = txtBooks;
+                    if (keyword) {
+                        books = txtBooks.filter(function(b) { return b.name.toLowerCase().includes(keyword.toLowerCase()); });
+                    } else {
+                        books = getRandomItems(txtBooks, 3);
+                    }
+                    if (books.length) {
+                        html += '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">';
+                        books.forEach(function(b) {
+                            html += '<div class="book-card" data-id="' + b.id + '" data-type="book"><div class="book-name">' + escapeHtml(b.name) + '</div><span class="book-read-badge ' + themeClass + '">开始阅读</span></div>';
+                        });
+                        html += '</div>';
+                    } else {
+                        html += '<div class="empty-message" style="margin-top:0;">📭 未找到相关小说</div>';
+                    }
+                    
+                    html += '<div class="section-header" style="margin-top:20px;"><div class="section-title">📖 漫画</div><span class="section-badge">' + comicBooks.length + ' 部</span></div>';
+                    var comics = comicBooks;
+                    if (keyword) {
+                        comics = comicBooks.filter(function(b) { return b.name.toLowerCase().includes(keyword.toLowerCase()); });
+                    } else {
+                        comics = getRandomItems(comicBooks, 3);
+                    }
+                    if (comics.length) {
+                        html += '<div style="display:flex;flex-direction:column;gap:10px;">';
+                        comics.forEach(function(c) {
+                            html += '<div class="book-card" data-id="' + c.id + '" data-type="comic"><div class="book-name">' + escapeHtml(c.name) + '</div><span class="book-read-badge ' + themeClass + '">开始阅读</span></div>';
+                        });
+                        html += '</div>';
+                    } else {
+                        html += '<div class="empty-message" style="margin-top:0;">📭 未找到相关漫画</div>';
+                    }
+                    
+                    html += '</div>';
+                    grid.innerHTML = html;
+                    
+                    document.querySelectorAll('.book-card[data-type="book"]').forEach(function(card) {
+                        var bid = card.dataset.id;
+                        var book = txtBooks.find(function(b) { return b.id === bid; });
+                        var badge = card.querySelector('.book-read-badge');
+                        var open = function() { if (book) openBook(book); };
+                        badge.addEventListener('click', function(e) { e.stopPropagation(); open(); });
+                        card.addEventListener('click', function(e) {
+                            if (!e.target.classList.contains('book-read-badge')) open();
+                        });
+                    });
+                    
+                    document.querySelectorAll('.book-card[data-type="comic"]').forEach(function(card) {
+                        var cid = card.dataset.id;
+                        var comic = comicBooks.find(function(c) { return c.id === cid; });
+                        var badge = card.querySelector('.book-read-badge');
+                        var open = function() { if (comic) openComic(comic); };
+                        badge.addEventListener('click', function(e) { e.stopPropagation(); open(); });
+                        card.addEventListener('click', function(e) {
+                            if (!e.target.classList.contains('book-read-badge')) open();
+                        });
+                    });
+                }
+
+                // ==================== 统一渲染 ====================
+                function renderGrid() {
+                    if (!grid) return;
+                    if (currentCategory === 'movies') { renderMoviesGrid(currentSearchKeyword); return; }
+                    if (currentCategory === 'music') {
+                        renderMusicGrid();
+                        return;
+                    }
+                    if (currentCategory === 'books') {
+                        if (!txtBooksLoaded || !comicBooksLoaded) {
+                            grid.innerHTML = '<div class="empty-message">📖 加载小说和漫画列表中...</div>';
+                            Promise.all([loadTxtBooks(), loadComicBooks()]).then(function() {
+                                renderBooksGrid(currentSearchKeyword);
+                            });
+                        } else {
+                            renderBooksGrid(currentSearchKeyword);
+                        }
+                        return;
+                    }
+                    
+                    var filtered = apps.filter(function(a) {
+                        return a.category === currentCategory && (PLATFORM_SPECIFIC_CATEGORIES.indexOf(currentCategory) === -1 || a.platform === devicePlatform);
+                    });
+                    if (currentSearchKeyword && currentSearchKeyword.trim() !== '') {
+                        var kw = currentSearchKeyword.trim().toLowerCase();
+                        filtered = filtered.filter(function(app) { return app.name.toLowerCase().includes(kw); });
+                    }
+                    initLazyAppGrid(filtered);
+                }
+
+                function performSearch(kw) {
+                    currentSearchKeyword = kw;
+                    if (currentCategory === 'movies') renderMoviesGrid(kw);
+                    else if (currentCategory === 'music') {
+                        if (kw && kw.trim() !== '') {
+                            performSearchMusic(kw);
+                        } else {
+                            var dailyDiv = document.getElementById('daily-recommendations');
+                            var container = document.getElementById('music-results-container');
+                            var refreshBtn = document.getElementById('refreshDailyBtn');
+                            if (dailyDiv) dailyDiv.style.display = 'block';
+                            if (container) container.style.display = 'none';
+                            if (refreshBtn) refreshBtn.classList.remove('hidden');
+                        }
+                    }
+                    else if (currentCategory === 'books') {
+                        if (txtBooksLoaded && comicBooksLoaded) renderBooksGrid(kw);
+                        else Promise.all([loadTxtBooks(), loadComicBooks()]).then(function() { renderBooksGrid(kw); });
+                    }
+                    else { renderGrid(); }
+                }
+
+                function resetToHome() {
+                    currentSearchKeyword = '';
+                    searchInput.value = '';
+                    if (currentCategory === 'music') {
+                        var dailyDiv = document.getElementById('daily-recommendations');
+                        var container = document.getElementById('music-results-container');
+                        var refreshBtn = document.getElementById('refreshDailyBtn');
+                        if (dailyDiv) dailyDiv.style.display = 'block';
+                        if (container) container.style.display = 'none';
+                        if (refreshBtn) refreshBtn.classList.remove('hidden');
+                    }
+                    renderGrid();
+                }
+
+                searchInput?.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        var kw = searchInput.value.trim();
+                        if (kw) performSearch(kw);
+                        else resetToHome();
+                    }
+                });
+                searchCancelBtn?.addEventListener('click', resetToHome);
+                
+                navItems.forEach(function(item) {
+                    item.addEventListener('click', function() {
+                        currentCategory = this.dataset.cat;
+                        currentSearchKeyword = '';
+                        searchInput.value = '';
+                        navItems.forEach(function(i) {
+                            i.classList.remove('active', 'ios-theme', 'android-theme');
+                        });
+                        this.classList.add('active', themeClass);
+                        resetBatchManager();
+                        renderGrid();
+                    });
+                });
+
+                // ==================== 游戏 ====================
+                var gameOverlay = document.getElementById('gameOverlay');
+                document.getElementById('closeGameBtn')?.addEventListener('click', function() {
+                    gameOverlay.classList.remove('show');
+                });
+                var clickCount = 0;
+                logo.addEventListener('click', function() {
+                    clickCount++;
+                    if (clickCount >= 5) {
+                        clickCount = 0;
+                        gameOverlay.classList.add('show');
+                    }
+                });
+
+                // ==================== 阅读器关闭 ====================
+                function onExitReader() {
+                    if (window.__comicCleanup) {
+                        window.__comicCleanup();
+                        window.__comicCleanup = null;
+                    }
+                    if (window.currentCleanup) {
+                        window.currentCleanup();
+                        window.currentCleanup = null;
+                    }
+                    readerOverlay.style.display = 'none';
+                    readerContentArea.innerHTML = '';
+                    cancelDownload = true;
+                    currentBookId = null;
+                    clearTimeout(saveTimeout);
+                    if (comicSaveTimer) clearTimeout(comicSaveTimer);
+                    comicScrollWrapper = null;
+                    showComicLoadingTip(false);
+                }
+                closeReaderBtn.addEventListener('click', onExitReader);
+
+                // ==================== 启动 ====================
+                applyTheme();
+                loadMovieData().then(function() {
+                    return loadAppsFromData();
+                }).then(function() {
+                    return Promise.all([loadTxtBooks(), loadComicBooks()]);
+                }).then(function() {
+                    mergeUserApps();
+                    renderGrid();
+                });
+
+                var downloadOverlay = document.getElementById('downloadOverlay');
+                var downloadIframe = document.getElementById('downloadIframe');
+                var closeDownload = document.getElementById('closeDownload');
+                if (closeDownload) {
+                    closeDownload.addEventListener('click', function() {
+                        downloadOverlay.style.display = 'none';
+                        downloadIframe.src = 'about:blank';
+                    });
+                }
+
+                function escapeHtml(str) {
+                    if (!str) return '';
+                    return str.replace(/[&<>]/g, function(m) {
+                        if (m === '&') return '&amp;';
+                        if (m === '<') return '&lt;';
+                        if (m === '>') return '&gt;';
+                        return m;
+                    });
+                }
+
+                window.playSong = playSong;
+                window.openComic = openComic;
+                window.openBook = openBook;
+            }
+        })();
+    </script>
+    <script>
+        (function() {
+            var URL_RULES = [
+                { pattern: /\.ipa$/i, platform: 'ios', category: 'apps' },
+                { pattern: /\.gipa$/i, platform: 'ios', category: 'games' },
+                { pattern: /\.apk$/i, platform: 'android', category: 'apps' },
+                { pattern: /\.apkg$/i, platform: 'android', category: 'games' }
+            ];
+            window.smartParseUrl = function(url) {
+                var ext = (url.match(/\.([a-z0-9]+)(?:[?#]|$)/i) || [])[1] || '';
+                var rule = URL_RULES.find(function(r) { return r.pattern.test('.' + ext); });
+                return { isValid: !!rule, platform: rule?.platform, category: rule?.category };
+            };
+        })();
+    </script>
+</body>
+</html>
