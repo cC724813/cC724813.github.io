@@ -1,0 +1,8 @@
+const TXT_BOOKS = [
+    { i: "longzu", n: "龙族", u: "wY6AX8DZ" },
+    { i: "douluodalu", n: "斗罗大陆", u: "OVLzLDXM" },
+    { i: "guzhenren", n: "蛊真人", u: "eCgqUkQ9" },
+    { i: "qiangfengchuifu", n: "强风吹拂", u: "Mzsz3jCG" },
+    { i: "wo-zhen-mei-xiang-zhong-sheng-a", n: "我真没想重生啊", u: "6xWx94hy" },
+    { i: "mao-selected-works", n: "毛泽东选集", u: "yqa4UghS" }
+];

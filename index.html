@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>APP Store</title>
+<script>
+(function () {
+    'use strict';
+
+    function detectDevice() {
+        var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+        if (/android/i.test(ua)) return 'mb';
+        if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'mb';
+        if (/windows phone|iemobile|blackberry|opera mini|mobile|phone|tablet/i.test(ua)) return 'mb';
+        var hasTouch = ('ontouchstart' in window) ||
+                       (navigator.maxTouchPoints > 0) ||
+                       (navigator.msMaxTouchPoints > 0);
+        if (hasTouch && window.innerWidth <= 768) return 'mb';
+        return 'pc';
+    }
+
+    var target = (detectDevice() === 'mb') ? 'indexmb.html' : 'indexpc.html';
+    try { window.location.replace(target); } catch (e) { window.location.href = target; }
+})();
+</script>
+</head>
+<body></body>
+</html>

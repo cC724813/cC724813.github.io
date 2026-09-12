@@ -1,0 +1,2617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APP Store</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #008080; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 30px; font-family: 'Microsoft Sans Serif', 'Segoe UI', Arial, sans-serif; }
+
+    .nt-window { background: #c0c0c0; padding: 4px; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; max-width: 560px; width: 100%; position: relative; height: 420px; display: flex; flex-direction: column; overflow: hidden; }
+    .nt-titlebar { background: linear-gradient(90deg, #000080, #1084d0); padding: 4px 6px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .nt-titlebar .left { display: flex; align-items: center; gap: 6px; }
+    .nt-titlebar .left .icon { font-weight: bold; color: #fff; font-size: 14px; background: rgba(255,255,255,0.1); padding: 0 4px; border-radius: 2px; }
+    .nt-titlebar .left .title { font-weight: bold; color: #fff; font-size: 13px; }
+    .nt-titlebar .right-search { display: flex; align-items: center; background: #ffffff; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; padding: 1px 2px 1px 6px; }
+    .nt-titlebar .right-search input { border: none; background: transparent; padding: 3px 4px; font-size: 11px; font-family: 'Microsoft Sans Serif', Arial; color: #000; outline: none; width: 100px; }
+    .nt-titlebar .right-search button { background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; padding: 2px 10px; font-size: 11px; font-family: 'Microsoft Sans Serif', Arial; cursor: pointer; color: #000; }
+
+    .nt-menubar { background: linear-gradient(90deg, #BFC7C9, #7BADDE); padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #808080; height: 38px; position: relative; z-index: 10; flex-shrink: 0; }
+    .nt-menubar .menu-left { display: flex; align-items: center; position: relative; }
+    .nt-menubar .menu-left .dropdown-btn { padding: 3px 14px 3px 12px; font-size: 12px; color: #000; cursor: pointer; background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; display: flex; align-items: center; gap: 6px; height: 26px; font-family: 'Microsoft Sans Serif', Arial; }
+    .nt-menubar .menu-left .dropdown-btn .arrow-down { font-size: 10px; transition: transform 0.15s; }
+    .nt-menubar .menu-left .dropdown-btn .arrow-down.open { transform: rotate(180deg); }
+
+    .dropdown-menu { display: none; position: absolute; top: calc(100% + 2px); left: 0; background: #c0c0c0; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; min-width: 100px; padding: 3px; z-index: 100; border: 1px solid #808080; }
+    .dropdown-menu.open { display: block; }
+    .dropdown-menu .dropdown-item { padding: 4px 16px; font-size: 12px; color: #000; cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap; background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; width: 100%; font-family: 'Microsoft Sans Serif', Arial; margin-bottom: 2px; text-align: center; }
+    .dropdown-menu .dropdown-item:last-child { margin-bottom: 0; }
+    .dropdown-menu .dropdown-item.active { background: #000080; color: #ffffff; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #4a6a9a, inset -2px -2px #808080, inset 2px 2px #2a4a7a; }
+
+    .nt-menubar .gif-logo { display: flex; align-items: center; justify-content: flex-end; height: 100%; line-height: 0; flex-shrink: 0; }
+    .nt-menubar .gif-logo img { display: block; height: 100%; width: auto; image-rendering: pixelated; object-fit: contain; }
+
+    .nt-body { padding: 6px 4px 6px 8px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; display: flex; gap: 6px; align-items: stretch; flex-direction: row-reverse; flex: 1; min-height: 0; overflow: hidden; }
+
+    .vscroll { display: flex; flex-direction: column; align-items: center; gap: 2px; background: #c0c0c0; padding: 2px 3px; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; flex-shrink: 0; align-self: stretch; justify-content: center; user-select: none; opacity: 1; transition: opacity 0.2s; width: 20px; }
+    .vscroll.disabled { opacity: 0.4; pointer-events: none; }
+    .vscroll .v-arrow { width: 16px; height: 16px; background: #c0c0c0; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; display: flex; align-items: center; justify-content: center; font-size: 8px; cursor: pointer; color: #000; flex-shrink: 0; }
+    .vscroll .v-arrow:active { box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; }
+    .vscroll .v-track { width: 16px; flex: 1; min-height: 40px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; position: relative; }
+    .vscroll .v-track .v-thumb { position: absolute; left: 2px; width: 12px; height: 30px; background: #c0c0c0; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; top: 0; cursor: grab; }
+    .vscroll .v-track .v-thumb:active { cursor: grabbing; }
+
+    .nt-body .content-area { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; scrollbar-width: none; -ms-overflow-style: none; }
+    .nt-body .content-area::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+    .app-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; gap: 12px; flex-wrap: wrap; flex-shrink: 0; min-height: 48px; }
+    .app-row .app-name { font-size: 16px; font-weight: bold; color: #000; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+    .app-row .app-artist { font-size: 13px; color: #555; flex: 1; min-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .app-row .app-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .app-row .app-actions .nt-btn { padding: 4px 22px; background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 12px; color: #000; cursor: pointer; font-weight: bold; }
+    .app-row .app-actions .nt-btn:active { box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; }
+
+    .no-results { text-align: center; padding: 8px 16px; display: none; flex-shrink: 0; }
+    .no-results.show { display: block; }
+    .no-results img { display: block; margin: 0 auto; width: 80px; height: auto; image-rendering: pixelated; }
+
+    .mini-player-window { position: fixed; top: 80px; left: 80px; width: 380px; background: #c0c0c0; padding: 4px; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf, 0 8px 32px rgba(0,0,0,0.6); z-index: 99999; display: none; min-width: 280px; user-select: none; overflow: hidden; }
+    .mini-player-window .mini-titlebar { background: linear-gradient(90deg, #000080, #1084d0); padding: 3px 6px; display: flex; align-items: center; justify-content: space-between; cursor: grab; }
+    .mini-player-window .mini-titlebar .mini-title { font-weight: bold; color: #fff; font-size: 12px; }
+    .mini-player-window .mini-titlebar .mini-btns { display: flex; gap: 2px; }
+    .mini-player-window .mini-titlebar .mini-btns button { padding: 0; min-width: 16px; min-height: 14px; border: none; background: #c0c0c0; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 10px; line-height: 14px; text-align: center; color: #000; cursor: pointer; }
+    .mini-player-window .mini-body { padding: 10px 12px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; }
+    .mini-player-window.minimized { width: 380px !important; height: auto !important; }
+    .mini-player-window.minimized .mini-body { display: none !important; }
+    .mini-player-window .mini-body .mini-cover { background: #000; padding: 3px; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; margin-bottom: 8px; text-align: center; height: 160px; display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; }
+    .mini-player-window .mini-body .mini-cover .viz-side { flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: space-between; gap: 1px; padding: 0 2px; min-width: 0; overflow: hidden; }
+    .mini-player-window .mini-body .mini-cover .viz-bar { flex: 1 1 0; min-width: 2px; max-width: 4px; height: 0px; border-radius: 1px; transition: height 0.05s linear; background: linear-gradient(to top, #1e88e5, #64b5f6, #ffffff); box-shadow: 0 0 2px rgba(100, 181, 246, 0.6); opacity: 0; }
+    .mini-player-window .mini-body .mini-cover .viz-bar.active { opacity: 1; }
+    .mini-player-window .mini-body .mini-cover img { max-height: 100%; max-width: 60%; object-fit: contain; display: none; flex-shrink: 0; z-index: 2; position: relative; }
+    .mini-player-window .mini-body .mini-cover img.show { display: block; margin: 0 auto; }
+    .mini-player-window .mini-body .mini-cover .cover-placeholder { color: #888; font-size: 12px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1; pointer-events: none; }
+    .mini-player-window .mini-body .mini-info { display: flex; justify-content: space-between; padding: 2px 4px; background: #d8d8d8; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; font-size: 11px; color: #000; margin-bottom: 6px; }
+    .mini-player-window .mini-body .mini-info .title { font-weight: bold; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mini-player-window .mini-body .mini-info .artist { color: #444; }
+    .mini-player-window .mini-body .mini-info .duration { font-family: 'Consolas', monospace; color: #555; }
+    .mini-player-window .mini-body .mini-progress { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .mini-player-window .mini-body .mini-progress input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 14px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; border: none; outline: none; padding: 0 2px; cursor: pointer; }
+    .mini-player-window .mini-body .mini-progress input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: #c0c0c0; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; cursor: pointer; }
+    .mini-player-window .mini-body .mini-progress .time-label { font-size: 10px; font-family: 'Consolas', monospace; background: #d8d8d8; padding: 0 6px; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; min-width: 50px; text-align: center; }
+    .mini-player-window .mini-body .mini-controls { display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .mini-player-window .mini-body .mini-controls button { padding: 3px 12px; background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 13px; color: #000; cursor: pointer; min-width: 40px; }
+    .mini-player-window .mini-body .mini-controls .play-btn { min-width: 60px; font-size: 14px; font-weight: bold; }
+    .mini-player-window .mini-body .mini-lyrics-wrap { display: flex; flex-direction: row; gap: 0; background: #d8d8d8; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; height: 110px; overflow: hidden; }
+    .mini-player-window .mini-body .mini-lyrics { flex: 1; min-width: 0; padding: 4px 8px; overflow-y: auto; font-size: 11px; line-height: 1.5; color: #333; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+    .mini-player-window .mini-body .mini-lyrics::-webkit-scrollbar { display: none; width: 0; height: 0; }
+    .mini-player-window .mini-body .mini-lyrics .lyric-line { padding: 0 4px; transition: all 0.2s; cursor: pointer; white-space: pre-wrap; word-break: break-word; }
+    .mini-player-window .mini-body .mini-lyrics .lyric-line.active { color: #000080; font-weight: bold; background: rgba(0,0,128,0.08); }
+    .mini-player-window .mini-body .mini-lyrics-wrap .vscroll { width: 20px; padding: 2px 3px; align-self: stretch; }
+    .mini-player-window.maximized { width: 100% !important; height: 100% !important; left: 0 !important; top: 0 !important; border-radius: 0 !important; }
+    .mini-player-window.maximized .mini-body { display: block !important; }
+    .mini-player-window.closed { display: none !important; }
+
+    .movie-player-window { position: fixed; top: 60px; left: 60px; width: 720px; background: #c0c0c0; padding: 4px; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf, 0 8px 32px rgba(0,0,0,0.6); z-index: 99999; display: none; min-width: 480px; user-select: none; overflow: hidden; flex-direction: column; }
+    .movie-player-window .movie-titlebar { background: linear-gradient(90deg, #000080, #1084d0); padding: 3px 6px; display: flex; align-items: center; justify-content: space-between; cursor: grab; flex-shrink: 0; }
+    .movie-player-window .movie-titlebar .movie-title-text { font-weight: bold; color: #fff; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 460px; }
+    .movie-player-window .movie-titlebar .movie-btns { display: flex; gap: 2px; }
+    .movie-player-window .movie-titlebar .movie-btns button { padding: 0; min-width: 18px; min-height: 16px; border: none; background: #c0c0c0; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 11px; line-height: 16px; text-align: center; color: #000; cursor: pointer; }
+    .movie-player-window .movie-body { padding: 6px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; display: flex; flex-direction: row; gap: 6px; flex: 1; min-height: 0; }
+    .movie-player-window .movie-left-col { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; }
+    .movie-player-window .movie-video-area { flex: 1; background: #000; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; min-height: 200px; overflow: hidden; }
+    .movie-player-window .movie-video-area video { width: 100%; height: 100%; max-height: 70vh; object-fit: contain; background: #000; display: block; }
+    .movie-player-window .movie-video-area .movie-placeholder { color: #666; font-size: 12px; text-align: center; padding: 20px; }
+    .movie-player-window .movie-progress-bar { display: flex; align-items: center; gap: 6px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; padding: 6px 10px; flex-shrink: 0; }
+    .movie-player-window .movie-progress-bar input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 14px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; border: none; outline: none; padding: 0 2px; cursor: pointer; min-width: 0; }
+    .movie-player-window .movie-progress-bar input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: #c0c0c0; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; cursor: pointer; border: none; }
+    .movie-player-window .movie-progress-bar .time-label { font-size: 11px; font-family: 'Consolas', monospace; background: #d8d8d8; padding: 2px 8px; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; min-width: 90px; text-align: center; flex-shrink: 0; color: #000; }
+    .movie-player-window .movie-control-bar { display: flex; align-items: center; justify-content: center; gap: 20px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; padding: 8px 10px; flex-shrink: 0; position: relative; }
+    .movie-player-window .movie-control-bar button { padding: 4px 18px; background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 14px; color: #000; cursor: pointer; font-weight: bold; min-width: 52px; height: 34px; display: flex; align-items: center; justify-content: center; }
+    .movie-player-window .movie-control-bar button:disabled { opacity: 0.3; cursor: default; }
+    .movie-player-window .movie-control-bar .bar-toggle-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+    .movie-player-window .movie-right-col { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; width: 0; overflow: hidden; transition: width 0.2s ease; min-height: 0; position: relative; }
+    .movie-player-window .movie-right-col.open { width: 220px; }
+    .movie-player-window .episode-panel-wrap { flex: 1; display: flex; flex-direction: row; min-height: 0; min-width: 0; gap: 0; }
+    .movie-player-window .episode-panel { display: block; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; padding: 4px; flex: 1; min-height: 0; min-width: 0; overflow-y: auto; border: 1px solid #808080; scrollbar-width: none; -ms-overflow-style: none; }
+    .movie-player-window .episode-panel::-webkit-scrollbar { display: none; width: 0; height: 0; }
+    .movie-player-window .episode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .movie-player-window .episode-btn { padding: 6px 2px; background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 12px; color: #000; cursor: pointer; text-align: center; font-weight: bold; }
+    .movie-player-window .episode-btn:active { box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; }
+    .movie-player-window .episode-btn.active { background: #000080; color: #ffffff; }
+    .movie-player-window .movie-right-col .panel-toggle-btn { padding: 4px 12px; background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 14px; color: #000; cursor: pointer; font-weight: bold; min-width: 40px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; }
+    .movie-player-window.maximized { width: 100% !important; height: 100% !important; left: 0 !important; top: 0 !important; border-radius: 0 !important; }
+    .movie-player-window.maximized .movie-body { display: flex !important; height: calc(100% - 30px); }
+    .movie-player-window.maximized .movie-video-area { min-height: 50vh; }
+    .movie-player-window.maximized .movie-right-col.open { width: 260px; }
+    .movie-player-window.closed { display: none !important; }
+    .movie-player-window video::-webkit-media-controls, .movie-player-window video::-webkit-media-controls-enclosure, .movie-player-window video::-webkit-media-controls-panel, .movie-player-window video::-webkit-media-controls-play-button, .movie-player-window video::-webkit-media-controls-start-playback-button { display: none !important; -webkit-appearance: none !important; }
+
+    /* ============ 图书分区 ============ */
+    .book-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; gap: 12px; flex-wrap: wrap; flex-shrink: 0; min-height: 48px; }
+    .book-row .book-name { font-size: 16px; font-weight: bold; color: #000; white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+    .book-row .book-type { font-size: 13px; color: #555; flex: 1; min-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .book-row .book-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .book-row .book-actions .nt-btn { padding: 4px 22px; background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 12px; color: #000; cursor: pointer; font-weight: bold; }
+    .book-row .book-actions .nt-btn:active { box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; }
+
+    /* ============ 小说阅读器窗口 (z-index 提升到 100000) ============ */
+    .novel-reader-window { position: fixed; top: 80px; left: 80px; width: 560px; height: 480px; background: #c0c0c0; padding: 4px; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf, 0 8px 32px rgba(0,0,0,0.6); z-index: 100000; display: none; min-width: 360px; user-select: none; overflow: hidden; flex-direction: column; }
+    .novel-reader-window .novel-titlebar { background: linear-gradient(90deg, #000080, #1084d0); padding: 3px 6px; display: flex; align-items: center; justify-content: space-between; cursor: grab; flex-shrink: 0; }
+    .novel-reader-window .novel-titlebar:active { cursor: grabbing; }
+    .novel-reader-window .novel-titlebar .novel-title-text { font-weight: bold; color: #fff; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+    .novel-reader-window .novel-titlebar .novel-btns { display: flex; gap: 2px; }
+    .novel-reader-window .novel-titlebar .novel-btns button { padding: 0; min-width: 18px; min-height: 16px; border: none; background: #c0c0c0; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 11px; line-height: 16px; text-align: center; color: #000; cursor: pointer; }
+    .novel-reader-window .novel-body { padding: 6px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; display: flex; flex-direction: row; gap: 6px; flex: 1; min-height: 0; }
+    .novel-reader-window .novel-text-area-wrap { flex: 1; display: flex; flex-direction: row; gap: 0; min-height: 0; min-width: 0; background: #ffffff; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; }
+    .novel-reader-window .novel-text-area { flex: 1; min-width: 0; padding: 10px 14px; overflow-y: auto; font-size: 14px; line-height: 1.7; font-family: 'Microsoft YaHei', 'SimSun', serif; color: #000; white-space: pre-wrap; word-break: break-word; scrollbar-width: none; -ms-overflow-style: none; }
+    .novel-reader-window .novel-text-area::-webkit-scrollbar { display: none; width: 0; height: 0; }
+    .novel-reader-window .novel-text-area-wrap .vscroll { width: 20px; padding: 2px 3px; align-self: stretch; flex-shrink: 0; }
+    .novel-reader-window.minimized { width: 320px !important; height: auto !important; }
+    .novel-reader-window.minimized .novel-body { display: none !important; }
+    .novel-reader-window.maximized { width: 100% !important; height: 100% !important; left: 0 !important; top: 0 !important; border-radius: 0 !important; }
+    .novel-reader-window.closed { display: none !important; }
+
+    /* ============ 漫画阅读器窗口 (z-index 提升到 100000) ============ */
+    .comic-reader-window { position: fixed; top: 80px; left: 80px; width: 560px; height: 520px; background: #c0c0c0; padding: 4px; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf, 0 8px 32px rgba(0,0,0,0.6); z-index: 100000; display: none; min-width: 360px; user-select: none; overflow: hidden; flex-direction: column; }
+    .comic-reader-window .comic-titlebar { background: linear-gradient(90deg, #000080, #1084d0); padding: 3px 6px; display: flex; align-items: center; justify-content: space-between; cursor: grab; flex-shrink: 0; }
+    .comic-reader-window .comic-titlebar:active { cursor: grabbing; }
+    .comic-reader-window .comic-titlebar .comic-title-text { font-weight: bold; color: #fff; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+    .comic-reader-window .comic-titlebar .comic-btns { display: flex; gap: 2px; }
+    .comic-reader-window .comic-titlebar .comic-btns button { padding: 0; min-width: 18px; min-height: 16px; border: none; background: #c0c0c0; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 11px; line-height: 16px; text-align: center; color: #000; cursor: pointer; }
+    .comic-reader-window .comic-body { padding: 6px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+    .comic-reader-window .comic-image-area { flex: 1; background: #000; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; min-height: 200px; overflow: hidden; }
+    .comic-reader-window .comic-image-area img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+    .comic-reader-window .comic-image-area .comic-placeholder { color: #888; font-size: 13px; text-align: center; padding: 20px; }
+    .comic-reader-window .comic-control-bar { display: flex; align-items: center; justify-content: space-between; gap: 20px; background: #c0c0c0; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; padding: 8px 10px; flex-shrink: 0; }
+    .comic-reader-window .comic-control-bar button { padding: 4px 18px; background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; font-family: 'Microsoft Sans Serif', Arial; font-size: 16px; color: #000; cursor: pointer; font-weight: bold; min-width: 52px; height: 34px; display: flex; align-items: center; justify-content: center; }
+    .comic-reader-window .comic-control-bar button:active { box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; }
+    .comic-reader-window .comic-control-bar button:disabled { opacity: 0.3; cursor: default; }
+    .comic-reader-window .comic-control-bar .comic-page-info { font-size: 13px; font-family: 'Consolas', monospace; background: #d8d8d8; padding: 2px 14px; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a; color: #000; min-width: 90px; text-align: center; }
+    .comic-reader-window.minimized { width: 320px !important; height: auto !important; }
+    .comic-reader-window.minimized .comic-body { display: none !important; }
+    .comic-reader-window.maximized { width: 100% !important; height: 100% !important; left: 0 !important; top: 0 !important; border-radius: 0 !important; }
+    .comic-reader-window.closed { display: none !important; }
+
+    /* ============ 右下角小狗组件 ============ */
+    .dog-chat { position: fixed; right: 20px; bottom: 20px; z-index: 10000; display: flex; flex-direction: column; align-items: center; gap: 0; user-select: none; }
+    .dog-chat .dog-bubble { position: relative; width: 170px; height: 130px; display: block; margin-right: 40px; margin-bottom: -20px; image-rendering: pixelated; z-index: 2; }
+    .dog-chat .dog-bubble img { width: 100%; height: 100%; display: block; }
+    .dog-chat .dog-bubble-text { position: absolute; top: 8px; left: 10px; right: 10px; bottom: 34px; font-size: 9px; line-height: 1.2; color: #333; word-break: break-word; text-align: center; display: flex; align-items: center; justify-content: center; padding: 2px 4px; overflow: hidden; white-space: pre-line; }
+    .dog-chat .dog-rover { width: 80px; height: auto; display: block; image-rendering: pixelated; position: relative; z-index: 1; cursor: pointer; transition: transform 0.1s; }
+    .dog-chat .dog-rover:hover { transform: scale(1.05); }
+    .dog-chat .dog-rover:active { transform: scale(0.95); }
+    .dog-chat .dog-send-box { margin-top: 8px; display: none; align-items: center; gap: 4px; background: #c0c0c0; padding: 4px; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; width: 200px; }
+    .dog-chat .dog-send-box.show { display: flex; }
+    .dog-chat .dog-send-box input { flex: 1; border: none; background: #ffffff; padding: 3px 5px; font-size: 11px; font-family: 'Microsoft Sans Serif', Arial; color: #000; outline: none; box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; min-width: 0; }
+    .dog-chat .dog-send-box button { background: #c0c0c0; border: none; box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; padding: 3px 10px; font-size: 11px; font-family: 'Microsoft Sans Serif', Arial; color: #000; cursor: pointer; font-weight: bold; white-space: nowrap; }
+    .dog-chat .dog-send-box button:active { box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080; }
+</style>
+</head>
+<body>
+
+<div class="nt-window">
+    <div class="nt-titlebar">
+        <div class="left">
+            <span class="icon">C</span>
+            <span class="title">APP Store</span>
+        </div>
+        <div class="right-search">
+            <input type="text" placeholder="搜索..." id="searchInput">
+            <button id="searchBtn">搜索</button>
+        </div>
+    </div>
+
+    <div class="nt-menubar">
+        <div class="menu-left">
+            <button class="dropdown-btn" id="menuToggle">
+                <span id="menuLabel">应用</span>
+                <span class="arrow-down" id="arrowIcon">▼</span>
+            </button>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <button class="dropdown-item active" data-category="apps">应用</button>
+                <button class="dropdown-item" data-category="games">游戏</button>
+                <button class="dropdown-item" data-category="music">音乐</button>
+                <button class="dropdown-item" data-category="movies">电影</button>
+                <button class="dropdown-item" data-category="books">图书</button>
+            </div>
+        </div>
+        <div class="gif-logo">
+            <img src="https://thf.bing.com/th/id/R-C.427ebbce180b33d245b52701d51ea03b?rik=H6kNi8cgmxuH3A&riu=http%3a%2f%2fmedia.giphy.com%2fmedia%2fl41YcLtmnhYyUlbfq%2fgiphy-downsized.gif&ehk=QyjMnzoIXizd1%2bSONRr%2fFqz7GfRnhZipTy72aRkvcM%3d&risl=&pid=ImgRaw&r=0" alt="动图">
+        </div>
+    </div>
+
+    <div class="nt-body">
+        <div class="vscroll" id="scrollBar">
+            <span class="v-arrow" id="scrollUp">▲</span>
+            <div class="v-track" id="scrollTrack">
+                <div class="v-thumb" id="scrollThumb"></div>
+            </div>
+            <span class="v-arrow" id="scrollDown">▼</span>
+        </div>
+        <div class="content-area" id="contentArea">
+            <div id="appListContainer"></div>
+            <div class="no-results" id="noResults">
+                <img src="https://netghosts.neocities.org/images/rover.gif" alt="未找到">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 音乐播放器小窗 -->
+<div class="mini-player-window" id="miniPlayerWindow" style="display:none;">
+    <div class="mini-titlebar" id="miniTitlebar">
+        <span class="mini-title">音乐播放器</span>
+        <div class="mini-btns">
+            <button id="miniMinBtn" title="最小化">_</button>
+            <button id="miniMaxBtn" title="最大化">☐</button>
+            <button id="miniCloseBtn" title="关闭">✕</button>
+        </div>
+    </div>
+    <div class="mini-body" id="miniBody">
+        <div class="mini-cover" id="miniCover">
+            <div class="viz-side" id="vizLeft"></div>
+            <div class="cover-placeholder" id="coverPlaceholder">等待播放</div>
+            <img id="miniCoverImg" alt="封面">
+            <div class="viz-side" id="vizRight"></div>
+        </div>
+        <div class="mini-info">
+            <span class="title" id="miniTitle">未加载</span>
+            <span class="artist" id="miniArtist">-</span>
+            <span class="duration" id="miniDuration">00:00 / 00:00</span>
+        </div>
+        <div class="mini-progress">
+            <input type="range" id="miniProgress" min="0" max="100" value="0">
+            <span class="time-label" id="miniTimeLabel">00:00</span>
+        </div>
+        <div class="mini-controls">
+            <button class="nt-btn" id="miniPrevBtn" title="上一首">⏮</button>
+            <button class="nt-btn play-btn" id="miniPlayBtn">▶</button>
+            <button class="nt-btn" id="miniNextBtn" title="下一首">⏭</button>
+        </div>
+        <div class="mini-lyrics-wrap" id="miniLyricsWrap">
+            <div class="mini-lyrics" id="miniLyrics">
+                <div class="lyric-empty">等待歌词...</div>
+            </div>
+            <div class="vscroll disabled" id="lyricsScrollBar">
+                <span class="v-arrow" id="lyricsScrollUp">▲</span>
+                <div class="v-track" id="lyricsScrollTrack">
+                    <div class="v-thumb" id="lyricsScrollThumb"></div>
+                </div>
+                <span class="v-arrow" id="lyricsScrollDown">▼</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 电影播放器 -->
+<div class="movie-player-window" id="moviePlayerWindow" style="display:none;">
+    <div class="movie-titlebar" id="movieTitlebar">
+        <span class="movie-title-text" id="movieTitleText">电影播放器</span>
+        <div class="movie-btns">
+            <button id="movieMinBtn" title="画中画">_</button>
+            <button id="movieMaxBtn" title="最大化">☐</button>
+            <button id="movieCloseBtn" title="关闭">✕</button>
+        </div>
+    </div>
+    <div class="movie-body" id="movieBody">
+        <div class="movie-left-col">
+            <div class="movie-video-area" id="movieVideoArea">
+                <div class="movie-placeholder" id="moviePlaceholder">等待播放</div>
+                <video id="movieVideo" preload="auto" playsinline webkit-playsinline></video>
+            </div>
+            <div class="movie-progress-bar">
+                <input type="range" id="movieProgress" min="0" max="1000" value="0">
+                <span class="time-label" id="movieTimeLabel">00:00 / 00:00</span>
+            </div>
+            <div class="movie-control-bar">
+                <button id="moviePrevBtn" title="上一集" disabled>⏮</button>
+                <button id="moviePlayBtn" title="播放/暂停">▶</button>
+                <button id="movieNextBtn" title="下一集" disabled>⏭</button>
+                <button class="bar-toggle-btn" id="episodeToggleBtn" title="展开选集">◀</button>
+            </div>
+        </div>
+        <div class="movie-right-col" id="movieRightCol">
+            <div class="episode-panel-wrap">
+                <div class="episode-panel" id="episodePanel">
+                    <div class="episode-grid" id="episodeGrid"></div>
+                </div>
+                <div class="vscroll" id="episodeScrollBar">
+                    <span class="v-arrow" id="episodeScrollUp">▲</span>
+                    <div class="v-track" id="episodeScrollTrack">
+                        <div class="v-thumb" id="episodeScrollThumb"></div>
+                    </div>
+                    <span class="v-arrow" id="episodeScrollDown">▼</span>
+                </div>
+            </div>
+            <button class="panel-toggle-btn" id="panelToggleBtn" title="收起选集" style="display:none;">▶</button>
+        </div>
+    </div>
+</div>
+
+<!-- 小说阅读器窗口 -->
+<div class="novel-reader-window" id="novelReaderWindow" style="display:none;">
+    <div class="novel-titlebar" id="novelTitlebar">
+        <span class="novel-title-text" id="novelTitleText">小说阅读器</span>
+        <div class="novel-btns">
+            <button id="novelMinBtn" title="最小化">_</button>
+            <button id="novelMaxBtn" title="最大化">☐</button>
+            <button id="novelCloseBtn" title="关闭">✕</button>
+        </div>
+    </div>
+    <div class="novel-body" id="novelBody">
+        <div class="novel-text-area-wrap">
+            <div class="novel-text-area" id="novelTextArea">加载中...</div>
+            <div class="vscroll disabled" id="novelScrollBar">
+                <span class="v-arrow" id="novelScrollUp">▲</span>
+                <div class="v-track" id="novelScrollTrack">
+                    <div class="v-thumb" id="novelScrollThumb"></div>
+                </div>
+                <span class="v-arrow" id="novelScrollDown">▼</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 漫画阅读器窗口 -->
+<div class="comic-reader-window" id="comicReaderWindow" style="display:none;">
+    <div class="comic-titlebar" id="comicTitlebar">
+        <span class="comic-title-text" id="comicTitleText">漫画阅读器</span>
+        <div class="comic-btns">
+            <button id="comicMinBtn" title="最小化">_</button>
+            <button id="comicMaxBtn" title="最大化">☐</button>
+            <button id="comicCloseBtn" title="关闭">✕</button>
+        </div>
+    </div>
+    <div class="comic-body" id="comicBody">
+        <div class="comic-image-area" id="comicImageArea">
+            <div class="comic-placeholder" id="comicPlaceholder">加载中...</div>
+        </div>
+        <div class="comic-control-bar">
+            <button id="comicPrevBtn" title="上一张" disabled>◀</button>
+            <span class="comic-page-info" id="comicPageInfo">0 / 0</span>
+            <button id="comicNextBtn" title="下一张" disabled>▶</button>
+        </div>
+    </div>
+</div>
+
+<!-- 右下角小狗组件 -->
+<div class="dog-chat" id="dogChat">
+    <div class="dog-bubble" id="dogBubble">
+        <img src="https://netghosts.neocities.org/98/bubble.png" alt="气泡">
+        <div class="dog-bubble-text" id="dogBubbleText">点我说话</div>
+    </div>
+    <img class="dog-rover" id="dogRover"
+         src="https://netghosts.neocities.org/images/rover.gif"
+         alt="Rover">
+    <div class="dog-send-box" id="dogSendBox">
+        <input type="text" id="dogInput" placeholder="输入...">
+        <button id="dogSendBtn">发送</button>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    const BASE_URL = 'https://loadly.io/';
+
+    function getFullLoadlyUrl(code) {
+        if (!code) return null;
+        code = code.trim();
+        if (code.startsWith('http://') || code.startsWith('https://')) return code;
+        return BASE_URL + code;
+    }
+
+    window.extractDirectUrl = async function(shareUrl, fileType, maxRetries, externalSignal) {
+        maxRetries = maxRetries || 2;
+        var normalized = shareUrl.trim();
+        if (!normalized.startsWith('http')) {
+            if (normalized.startsWith('loadly.io/')) normalized = 'https://' + normalized;
+            else normalized = 'https://loadly.io/' + normalized.replace(/^\/+/, '');
+        }
+        var extMap = { 'mp3':'mp3', 'txt':'txt', 'mp4':'mp4', 'zip':'zip', 'lrc':'lrc' };
+        var targetExt = extMap[fileType] || 'mp3';
+        for (var attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                if (externalSignal && externalSignal.aborted) throw new Error('已中止');
+                var response = await fetch(normalized, {
+                    headers: { 'Accept': 'text/html,application/xhtml+xml' },
+                    signal: externalSignal
+                });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                var html = await response.text();
+                if (externalSignal && externalSignal.aborted) throw new Error('已中止');
+                var foundLinks = [];
+                var downloadLinkRegex = /<a[^>]*href="([^"]*\/file\/download\/[^"]*)"[^>]*>/gi;
+                var match;
+                while ((match = downloadLinkRegex.exec(html)) !== null) {
+                    var link = match[1];
+                    if (link.startsWith('/')) link = 'https://loadly.io' + link;
+                    if (foundLinks.indexOf(link) === -1) foundLinks.push(link);
+                }
+                var patterns = {
+                    'mp3': [/https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.mp3[^"'\s]*/i, /https:\/\/[^\s"']+\.mp3/i],
+                    'txt': [/https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.txt[^"'\s]*/i, /https:\/\/[^\s"']+\.txt/i],
+                    'mp4': [/https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.mp4[^"'\s]*/i, /https:\/\/[^\s"']+\.mp4/i, /https:\/\/[^\s"']+\.m3u8/i],
+                    'zip': [/https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.zip[^"'\s]*/i, /https:\/\/[^\s"']+\.zip/i, /https:\/\/[^\s"']+\.cbz/i],
+                    'lrc': [/https:\/\/app-storage\.loadly\.io\/[a-f0-9]+\.lrc[^"'\s]*/i, /https:\/\/[^\s"']+\.lrc/i]
+                };
+                var filePatterns = patterns[fileType] || patterns['mp3'];
+                for (var i = 0; i < filePatterns.length; i++) {
+                    var pMatch = html.match(filePatterns[i]);
+                    if (pMatch && foundLinks.indexOf(pMatch[0]) === -1) foundLinks.push(pMatch[0]);
+                }
+                var urlPattern = /(?:https?:)?\/\/[^\s"'<>]+\.(?:mp4|m3u8|ipa|apk|zip|mp3|txt|lrc)[^\s"'<>]*/gi;
+                var urlMatch;
+                while ((urlMatch = urlPattern.exec(html)) !== null) {
+                    var url = urlMatch[0];
+                    if (url.startsWith('//')) url = 'https:' + url;
+                    if (foundLinks.indexOf(url) === -1) foundLinks.push(url);
+                }
+                var filtered = foundLinks.filter(function(link) {
+                    return link.toLowerCase().includes('.' + targetExt.toLowerCase()) || link.includes('/file/download/');
+                });
+                if (filtered.length > 0) {
+                    var extMatch = filtered.find(function(link) {
+                        return link.toLowerCase().includes('.' + targetExt.toLowerCase());
+                    });
+                    return extMatch || filtered[0];
+                }
+                throw new Error('未找到直链');
+            } catch (err) {
+                if (externalSignal && externalSignal.aborted) throw new Error('已中止');
+                if (attempt >= maxRetries) throw err;
+                await new Promise(function(r) { setTimeout(r, 800 * (attempt + 1)); });
+            }
+        }
+    };
+
+    let pcApps = [], musicData = [], movieData = [], currentDisplaySongs = [];
+    let txtBooks = [], comicBooks = [];
+    let txtBooksLoaded = false, comicBooksLoaded = false;
+
+    async function loadPcApps() {
+        try {
+            const response = await fetch('pcapp.js');
+            if (!response.ok) throw new Error('无法加载 pcapp.js');
+            const scriptText = await response.text();
+            const fn = new Function('window', 'console', scriptText + '\nreturn PC_APPS_LIST;');
+            const result = fn(window, console);
+            if (result && Array.isArray(result) && result.length > 0) {
+                pcApps = result.map(function(item) {
+                    return {
+                        id: item.i,
+                        name: item.n,
+                        code: item.c,
+                        category: item.cat === 'a' ? 'apps' : (item.cat === 'g' ? 'games' : item.cat)
+                    };
+                });
+                console.log('应用加载成功: ' + pcApps.length + ' 个');
+            }
+        } catch (e) { console.warn('加载 pcapp.js 失败', e); }
+        if (currentCategory === 'apps' || currentCategory === 'games') renderAppList();
+    }
+
+    async function loadMusicData() {
+        try {
+            const response = await fetch('music.js');
+            if (!response.ok) throw new Error('无法加载 music.js');
+            const scriptText = await response.text();
+            const fn = new Function('window', 'console', scriptText + '\nreturn PLAYLIST;');
+            const result = fn(window, console);
+            if (result && Array.isArray(result) && result.length > 0) {
+                musicData = result;
+                console.log('音乐加载成功: ' + musicData.length + ' 首');
+                currentDisplaySongs = getRandomSongs(5);
+            }
+        } catch (e) { console.warn('加载 music.js 失败', e); }
+        if (currentCategory === 'music') renderMusicList();
+    }
+
+    async function loadMovieData() {
+        try {
+            const response = await fetch('movie.js');
+            if (!response.ok) throw new Error('无法加载 movie.js');
+            const scriptText = await response.text();
+            const fn = new Function('window', 'console', scriptText + '\nreturn MOVIE_DATA;');
+            const result = fn(window, console);
+            if (result && Array.isArray(result) && result.length > 0) {
+                movieData = result;
+                console.log('电影加载成功: ' + movieData.length + ' 部');
+            }
+        } catch (e) { console.warn('加载 movie.js 失败', e); }
+        if (currentCategory === 'movies') renderMoviesGrid();
+    }
+
+    async function loadTxtBooks() {
+        try {
+            const response = await fetch('txt.js');
+            if (!response.ok) throw new Error('无法加载 txt.js');
+            const scriptText = await response.text();
+            const fn = new Function('window', 'console', scriptText + '\nreturn TXT_BOOKS;');
+            const result = fn(window, console);
+            if (result && Array.isArray(result)) {
+                txtBooks = result.map(function(item) {
+                    return { id: item.i, name: item.n, url: 'https://loadly.io/' + item.u };
+                });
+                txtBooksLoaded = true;
+                console.log('小说加载成功: ' + txtBooks.length + ' 本');
+            }
+        } catch (e) { console.warn('加载 txt.js 失败', e); }
+        if (currentCategory === 'books') renderBooksGrid();
+    }
+
+    async function loadComicBooks() {
+        try {
+            const response = await fetch('mh.js');
+            if (!response.ok) throw new Error('无法加载 mh.js');
+            const scriptText = await response.text();
+            const fn = new Function('window', 'console', scriptText + '\nreturn MH_COMICS;');
+            const result = fn(window, console);
+            if (result && Array.isArray(result)) {
+                comicBooks = result.map(function(item) {
+                    return {
+                        id: item.id || item.url || Math.random().toString(36).substr(2, 6),
+                        name: item.title || item.name || '未知漫画',
+                        url: item.url || ''
+                    };
+                });
+                comicBooksLoaded = true;
+                console.log('漫画加载成功: ' + comicBooks.length + ' 部');
+            }
+        } catch (e) { console.warn('加载 mh.js 失败', e); }
+        if (currentCategory === 'books') renderBooksGrid();
+    }
+
+    function getRandomSongs(count) {
+        if (!musicData || musicData.length === 0) return [];
+        const shuffled = [...musicData];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled.slice(0, Math.min(count, shuffled.length));
+    }
+
+    const categoryNames = { 'apps':'应用','games':'游戏','music':'音乐','movies':'电影','books':'图书' };
+    let currentCategory = 'apps';
+
+    const searchBtn = document.getElementById('searchBtn');
+    const searchInput = document.getElementById('searchInput');
+    const contentArea = document.getElementById('contentArea');
+    const appListContainer = document.getElementById('appListContainer');
+    const scrollBar = document.getElementById('scrollBar');
+    const scrollUp = document.getElementById('scrollUp');
+    const scrollDown = document.getElementById('scrollDown');
+    const scrollTrack = document.getElementById('scrollTrack');
+    const scrollThumb = document.getElementById('scrollThumb');
+    const noResults = document.getElementById('noResults');
+    const menuToggle = document.getElementById('menuToggle');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const arrowIcon = document.getElementById('arrowIcon');
+    const menuLabel = document.getElementById('menuLabel');
+    const dropdownItems = document.querySelectorAll('.dropdown-item');
+
+    const miniWindow = document.getElementById('miniPlayerWindow');
+    const miniTitlebar = document.getElementById('miniTitlebar');
+    const miniCover = document.getElementById('miniCover');
+    const miniCoverImg = document.getElementById('miniCoverImg');
+    const coverPlaceholder = document.getElementById('coverPlaceholder');
+    const miniTitle = document.getElementById('miniTitle');
+    const miniArtist = document.getElementById('miniArtist');
+    const miniDuration = document.getElementById('miniDuration');
+    const miniProgress = document.getElementById('miniProgress');
+    const miniTimeLabel = document.getElementById('miniTimeLabel');
+    const miniPlayBtn = document.getElementById('miniPlayBtn');
+    const miniPrevBtn = document.getElementById('miniPrevBtn');
+    const miniNextBtn = document.getElementById('miniNextBtn');
+    const miniLyrics = document.getElementById('miniLyrics');
+    const miniLyricsWrap = document.getElementById('miniLyricsWrap');
+    const miniMinBtn = document.getElementById('miniMinBtn');
+    const miniMaxBtn = document.getElementById('miniMaxBtn');
+    const miniCloseBtn = document.getElementById('miniCloseBtn');
+    const vizLeft = document.getElementById('vizLeft');
+    const vizRight = document.getElementById('vizRight');
+    const lyricsScrollBar = document.getElementById('lyricsScrollBar');
+    const lyricsScrollUp = document.getElementById('lyricsScrollUp');
+    const lyricsScrollDown = document.getElementById('lyricsScrollDown');
+    const lyricsScrollTrack = document.getElementById('lyricsScrollTrack');
+    const lyricsScrollThumb = document.getElementById('lyricsScrollThumb');
+
+    const movieWindow = document.getElementById('moviePlayerWindow');
+    const movieTitlebar = document.getElementById('movieTitlebar');
+    const movieTitleText = document.getElementById('movieTitleText');
+    const movieMinBtn = document.getElementById('movieMinBtn');
+    const movieMaxBtn = document.getElementById('movieMaxBtn');
+    const movieCloseBtn = document.getElementById('movieCloseBtn');
+    const moviePrevBtn = document.getElementById('moviePrevBtn');
+    const moviePlayBtn = document.getElementById('moviePlayBtn');
+    const movieNextBtn = document.getElementById('movieNextBtn');
+    const movieVideo = document.getElementById('movieVideo');
+    const moviePlaceholder = document.getElementById('moviePlaceholder');
+    const movieProgress = document.getElementById('movieProgress');
+    const movieTimeLabel = document.getElementById('movieTimeLabel');
+    const episodeGrid = document.getElementById('episodeGrid');
+    const episodeToggleBtn = document.getElementById('episodeToggleBtn');
+    const panelToggleBtn = document.getElementById('panelToggleBtn');
+    const movieRightCol = document.getElementById('movieRightCol');
+    const episodePanel = document.getElementById('episodePanel');
+    const episodeScrollBar = document.getElementById('episodeScrollBar');
+    const episodeScrollUp = document.getElementById('episodeScrollUp');
+    const episodeScrollDown = document.getElementById('episodeScrollDown');
+    const episodeScrollTrack = document.getElementById('episodeScrollTrack');
+    const episodeScrollThumb = document.getElementById('episodeScrollThumb');
+
+    const novelWindow = document.getElementById('novelReaderWindow');
+    const novelTitlebar = document.getElementById('novelTitlebar');
+    const novelTitleText = document.getElementById('novelTitleText');
+    const novelMinBtn = document.getElementById('novelMinBtn');
+    const novelMaxBtn = document.getElementById('novelMaxBtn');
+    const novelCloseBtn = document.getElementById('novelCloseBtn');
+    const novelTextArea = document.getElementById('novelTextArea');
+    const novelScrollBar = document.getElementById('novelScrollBar');
+    const novelScrollUp = document.getElementById('novelScrollUp');
+    const novelScrollDown = document.getElementById('novelScrollDown');
+    const novelScrollTrack = document.getElementById('novelScrollTrack');
+    const novelScrollThumb = document.getElementById('novelScrollThumb');
+
+    const comicWindow = document.getElementById('comicReaderWindow');
+    const comicTitlebar = document.getElementById('comicTitlebar');
+    const comicTitleText = document.getElementById('comicTitleText');
+    const comicMinBtn = document.getElementById('comicMinBtn');
+    const comicMaxBtn = document.getElementById('comicMaxBtn');
+    const comicCloseBtn = document.getElementById('comicCloseBtn');
+    const comicImageArea = document.getElementById('comicImageArea');
+    const comicPlaceholder = document.getElementById('comicPlaceholder');
+    const comicPrevBtn = document.getElementById('comicPrevBtn');
+    const comicNextBtn = document.getElementById('comicNextBtn');
+    const comicPageInfo = document.getElementById('comicPageInfo');
+
+    const audio = new Audio();
+    let currentPlayIndex = -1;
+    let isMinimized = false, isMaximized = false, isClosed = false;
+    let currentLyricsLines = [];
+    let currentLyricLineIndex = -1;
+    let dragData = { isDragging: false, offsetX: 0, offsetY: 0 };
+    let currentMusicAbort = null;
+
+    let currentMovieMedia = null;
+    let currentEpisodeIndex = 0;
+    let isMovieMinimized = false, isMovieMaximized = false, isMovieClosed = false;
+    let movieDragData = { isDragging: false, offsetX: 0, offsetY: 0 };
+    let isEpisodePanelOpen = false;
+    let currentMovieLoadId = 0;
+    let currentMovieAbort = null;
+
+    const VIZ_BAR_COUNT = 15;
+    const vizBars = [];
+    let audioCtx = null;
+    let analyser = null;
+    let sourceNode = null;
+    let vizAnimId = null;
+    let vizConnected = false;
+    let vizVisible = false;
+
+    function initVizBars() {
+        if (vizBars.length > 0) return;
+        const leftArr = [];
+        for (let i = 0; i < VIZ_BAR_COUNT; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'viz-bar';
+            leftArr.push(bar);
+        }
+        for (let i = VIZ_BAR_COUNT - 1; i >= 0; i--) {
+            vizLeft.appendChild(leftArr[i]);
+            vizBars.push(leftArr[i]);
+        }
+        const rightArr = [];
+        for (let i = 0; i < VIZ_BAR_COUNT; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'viz-bar';
+            rightArr.push(bar);
+        }
+        for (let i = 0; i < VIZ_BAR_COUNT; i++) {
+            vizRight.appendChild(rightArr[i]);
+            vizBars.push(rightArr[i]);
+        }
+    }
+
+    function initAudioAnalyser() {
+        if (audioCtx) return;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
+            analyser.smoothingTimeConstant = 0.75;
+            sourceNode = audioCtx.createMediaElementSource(audio);
+            sourceNode.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            vizConnected = true;
+        } catch (e) { console.warn('Web Audio 初始化失败:', e); }
+    }
+
+    function extractCoverColors(imgElement, callback) {
+        try {
+            const cvs = document.createElement('canvas');
+            const size = 32;
+            cvs.width = size; cvs.height = size;
+            const ctx = cvs.getContext('2d');
+            ctx.drawImage(imgElement, 0, 0, size, size);
+            const data = ctx.getImageData(0, 0, size, size).data;
+            const buckets = {};
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i], g = data[i+1], b = data[i+2];
+                const a = data[i+3];
+                if (a < 128) continue;
+                const max = Math.max(r, g, b);
+                const min = Math.min(r, g, b);
+                const sat = max === 0 ? 0 : (max - min) / max;
+                if (sat < 0.15 || max < 40) continue;
+                const hue = Math.round(Math.atan2(Math.sqrt(3) * (g - b), 2 * r - g - b) * 180 / Math.PI);
+                const hb = Math.round(hue / 30) * 30;
+                if (!buckets[hb]) buckets[hb] = { r: 0, g: 0, b: 0, n: 0 };
+                buckets[hb].r += r; buckets[hb].g += g; buckets[hb].b += b; buckets[hb].n++;
+            }
+            const colors = Object.values(buckets).filter(b => b.n > 3).sort((a, b) => b.n - a.n).slice(0, 3).map(b => ({ r: Math.round(b.r / b.n), g: Math.round(b.g / b.n), b: Math.round(b.b / b.n) }));
+            if (colors.length === 0) {
+                colors.push({ r: 30, g: 136, b: 229 });
+                colors.push({ r: 100, g: 181, b: 246 });
+                colors.push({ r: 255, g: 255, b: 255 });
+            } else if (colors.length === 1) {
+                const c = colors[0];
+                colors.push({ r: Math.min(255, c.r + 60), g: Math.min(255, c.g + 60), b: Math.min(255, c.b + 60) });
+                colors.push({ r: 255, g: 255, b: 255 });
+            } else if (colors.length === 2) {
+                colors.push({ r: 255, g: 255, b: 255 });
+            }
+            callback(colors);
+        } catch (e) {
+            callback([{ r: 30, g: 136, b: 229 }, { r: 100, g: 181, b: 246 }, { r: 255, g: 255, b: 255 }]);
+        }
+    }
+
+    function applyColorsToBars(colors) {
+        const c1 = `rgb(${colors[0].r},${colors[0].g},${colors[0].b})`;
+        const c2 = `rgb(${colors[1].r},${colors[1].g},${colors[1].b})`;
+        const c3 = `rgb(${colors[2].r},${colors[2].g},${colors[2].b})`;
+        const shadow = `rgba(${colors[1].r},${colors[1].g},${colors[1].b},0.6)`;
+        vizBars.forEach(bar => {
+            bar.style.background = `linear-gradient(to top, ${c1}, ${c2}, ${c3})`;
+            bar.style.boxShadow = `0 0 2px ${shadow}`;
+        });
+    }
+
+    function vizRender() {
+        if (!analyser || !vizConnected || !vizVisible) { vizAnimId = null; return; }
+        const freqData = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(freqData);
+        const maxHeight = miniCover.clientHeight - 6;
+        const totalBars = VIZ_BAR_COUNT;
+        const binsPerBar = Math.floor(freqData.length / totalBars);
+        const levelArr = [];
+        for (let i = 0; i < totalBars; i++) {
+            let sum = 0;
+            for (let k = 0; k < binsPerBar; k++) sum += freqData[i * binsPerBar + k] || 0;
+            levelArr.push(sum / binsPerBar / 255);
+        }
+        for (let j = 0; j < VIZ_BAR_COUNT; j++) {
+            const levelIdx = (VIZ_BAR_COUNT - 1) - j;
+            vizBars[j].style.height = Math.max(2, levelArr[levelIdx] * maxHeight) + 'px';
+        }
+        for (let k = 0; k < VIZ_BAR_COUNT; k++) {
+            vizBars[VIZ_BAR_COUNT + k].style.height = Math.max(2, levelArr[k] * maxHeight) + 'px';
+        }
+        vizAnimId = requestAnimationFrame(vizRender);
+    }
+
+    function startViz() {
+        initVizBars();
+        initAudioAnalyser();
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        vizVisible = true;
+        vizBars.forEach(bar => bar.classList.add('active'));
+        if (!vizAnimId) vizRender();
+    }
+
+    function stopViz() {
+        vizVisible = false;
+        vizBars.forEach(bar => { bar.style.height = '0px'; bar.classList.remove('active'); });
+        if (vizAnimId) { cancelAnimationFrame(vizAnimId); vizAnimId = null; }
+    }
+
+    let isLyricsDragging = false, lyricsDragStartY = 0, lyricsThumbStartTop = 0;
+
+    function updateLyricsScrollBarState() {
+        const needsScroll = miniLyrics.scrollHeight > miniLyrics.clientHeight;
+        lyricsScrollBar.classList.toggle('disabled', !needsScroll);
+        updateLyricsThumbPosition();
+    }
+    function updateLyricsThumbPosition() {
+        const maxScroll = miniLyrics.scrollHeight - miniLyrics.clientHeight;
+        const scrollPercent = maxScroll > 0 ? miniLyrics.scrollTop / maxScroll : 0;
+        const trackHeight = lyricsScrollTrack.clientHeight - lyricsScrollThumb.clientHeight;
+        lyricsScrollThumb.style.top = Math.max(0, Math.min(scrollPercent * trackHeight, trackHeight)) + 'px';
+    }
+    miniLyrics.addEventListener('scroll', () => { updateLyricsThumbPosition(); updateLyricsScrollBarState(); });
+
+    lyricsScrollTrack.addEventListener('mousedown', e => {
+        if (e.target === lyricsScrollThumb || lyricsScrollBar.classList.contains('disabled')) return;
+        const rect = lyricsScrollTrack.getBoundingClientRect();
+        const thumbHeight = lyricsScrollThumb.clientHeight;
+        const clickY = e.clientY - rect.top - thumbHeight / 2;
+        const maxTop = lyricsScrollTrack.clientHeight - thumbHeight;
+        const clampedY = Math.max(0, Math.min(clickY, maxTop));
+        const percent = maxTop > 0 ? clampedY / maxTop : 0;
+        const maxScroll = miniLyrics.scrollHeight - miniLyrics.clientHeight;
+        miniLyrics.scrollTop = percent * maxScroll;
+        updateLyricsThumbPosition();
+    });
+
+    lyricsScrollThumb.addEventListener('mousedown', e => {
+        e.preventDefault();
+        if (lyricsScrollBar.classList.contains('disabled')) return;
+        isLyricsDragging = true;
+        lyricsDragStartY = e.clientY;
+        lyricsThumbStartTop = parseFloat(lyricsScrollThumb.style.top) || 0;
+        document.body.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!isLyricsDragging) return;
+        const deltaY = e.clientY - lyricsDragStartY;
+        const thumbHeight = lyricsScrollThumb.clientHeight;
+        const trackHeight = lyricsScrollTrack.clientHeight;
+        const maxTop = trackHeight - thumbHeight;
+        let newTop = Math.max(0, Math.min(lyricsThumbStartTop + deltaY, maxTop));
+        lyricsScrollThumb.style.top = newTop + 'px';
+        const percent = maxTop > 0 ? newTop / maxTop : 0;
+        const maxScroll = miniLyrics.scrollHeight - miniLyrics.clientHeight;
+        miniLyrics.scrollTop = percent * maxScroll;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isLyricsDragging) { isLyricsDragging = false; document.body.style.cursor = ''; }
+    });
+
+    let lyricsScrollInterval = null;
+    function startLyricsScroll(direction) {
+        if (lyricsScrollInterval || lyricsScrollBar.classList.contains('disabled')) return;
+        const step = direction === 'up' ? -15 : 15;
+        lyricsScrollInterval = setInterval(() => { miniLyrics.scrollTop += step; updateLyricsThumbPosition(); }, 60);
+    }
+    function stopLyricsScroll() { if (lyricsScrollInterval) { clearInterval(lyricsScrollInterval); lyricsScrollInterval = null; } }
+    lyricsScrollUp.addEventListener('mousedown', e => { e.preventDefault(); startLyricsScroll('up'); });
+    lyricsScrollUp.addEventListener('mouseup', stopLyricsScroll); lyricsScrollUp.addEventListener('mouseleave', stopLyricsScroll);
+    lyricsScrollDown.addEventListener('mousedown', e => { e.preventDefault(); startLyricsScroll('down'); });
+    lyricsScrollDown.addEventListener('mouseup', stopLyricsScroll); lyricsScrollDown.addEventListener('mouseleave', stopLyricsScroll);
+
+    let isMenuOpen = false;
+    function toggleMenu() { isMenuOpen = !isMenuOpen; dropdownMenu.classList.toggle('open', isMenuOpen); arrowIcon.classList.toggle('open', isMenuOpen); }
+    function closeMenu() { isMenuOpen = false; dropdownMenu.classList.remove('open'); arrowIcon.classList.remove('open'); }
+
+    menuToggle.addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
+
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const category = this.dataset.category;
+            currentCategory = category;
+            menuLabel.textContent = categoryNames[category] || '应用';
+            dropdownItems.forEach(el => el.classList.remove('active'));
+            this.classList.add('active');
+            closeMenu();
+
+            if (category === 'music') { currentDisplaySongs = getRandomSongs(5); renderMusicList(); }
+            else if (category === 'apps' || category === 'games') renderAppList();
+            else if (category === 'movies') renderMoviesGrid();
+            else if (category === 'books') {
+                if (!txtBooksLoaded) loadTxtBooks();
+                if (!comicBooksLoaded) loadComicBooks();
+                renderBooksGrid();
+            }
+            else {
+                appListContainer.innerHTML = '';
+                contentArea.innerHTML = `<div class="app-row" style="justify-content:center;padding:20px;color:#444;">${categoryNames[category] || category} 分区</div>`;
+                noResults.classList.remove('show');
+                setTimeout(updateScrollBarState, 50);
+            }
+        });
+    });
+
+    document.addEventListener('click', e => {
+        if (!menuToggle.contains(e.target) && !dropdownMenu.contains(e.target)) closeMenu();
+    });
+
+    function performSearch() {
+        const keyword = searchInput.value.trim().toLowerCase();
+        if (currentCategory === 'music') searchMusic(keyword);
+        else if (currentCategory === 'movies') renderMoviesGrid(keyword);
+        else if (currentCategory === 'books') renderBooksGridFiltered(keyword);
+        else if (currentCategory === 'apps' || currentCategory === 'games') searchApps(keyword);
+    }
+
+    function searchApps(keyword) {
+        const items = appListContainer.querySelectorAll('.app-row');
+        let hasVisible = false;
+        items.forEach(item => {
+            const name = item.querySelector('.app-name')?.textContent?.toLowerCase() || '';
+            const match = keyword === '' || name.includes(keyword);
+            item.style.display = match ? '' : 'none';
+            if (match) hasVisible = true;
+        });
+        noResults.classList.toggle('show', keyword !== '' && !hasVisible);
+        contentArea.scrollTop = 0;
+        setTimeout(updateScrollBarState, 50);
+    }
+
+    function searchMusic(keyword) {
+        const kw = keyword.toLowerCase();
+        contentArea.innerHTML = ''; appListContainer.innerHTML = '';
+        noResults.classList.remove('show');
+        let filtered = musicData;
+        if (kw !== '') {
+            filtered = musicData.filter(s => s.title.toLowerCase().includes(kw) || (s.artist || '').toLowerCase().includes(kw));
+        } else {
+            filtered = currentDisplaySongs.length > 0 ? currentDisplaySongs : getRandomSongs(5);
+        }
+        if (!filtered || filtered.length === 0) { noResults.classList.add('show'); setTimeout(updateScrollBarState, 50); return; }
+
+        filtered.forEach((song, index) => {
+            const row = document.createElement('div');
+            row.className = 'app-row';
+            const mp3Url = getFullLoadlyUrl(song.mp3);
+            const lyricUrl = song.lyric ? getFullLoadlyUrl(song.lyric) : '';
+            row.innerHTML = `
+                <span class="app-name">${escapeHtml(song.title)}</span>
+                <span class="app-artist">${escapeHtml(song.artist || '未知歌手')}</span>
+                <div class="app-actions">
+                    <button class="nt-btn play-music-btn" data-mp3="${mp3Url}" data-lyric="${lyricUrl}" data-title="${escapeHtml(song.title)}" data-artist="${escapeHtml(song.artist || '未知歌手')}">播放</button>
+                </div>`;
+            contentArea.appendChild(row);
+        });
+        bindMusicPlayBtns();
+        setTimeout(updateScrollBarState, 50);
+    }
+
+    function bindMusicPlayBtns() {
+        document.querySelectorAll('.play-music-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const mp3 = this.dataset.mp3;
+                const lyric = this.dataset.lyric;
+                const title = this.dataset.title;
+                const artist = this.dataset.artist;
+                const fullIndex = musicData.findIndex(s => getFullLoadlyUrl(s.mp3) === mp3 && s.title === title);
+                currentPlayIndex = fullIndex >= 0 ? fullIndex : 0;
+                miniWindow.style.display = 'block';
+                loadMusicToMini(mp3, lyric, title, artist);
+            });
+        });
+    }
+
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+    searchInput.addEventListener('input', performSearch);
+
+    let isDraggingScroll = false, dragStartY = 0, thumbStartTop = 0;
+
+    function updateScrollBarState() {
+        const needsScroll = contentArea.scrollHeight > contentArea.clientHeight;
+        scrollBar.classList.toggle('disabled', !needsScroll);
+        updateThumbPosition();
+    }
+    function updateThumbPosition() {
+        const maxScroll = contentArea.scrollHeight - contentArea.clientHeight;
+        const scrollPercent = maxScroll > 0 ? contentArea.scrollTop / maxScroll : 0;
+        const trackHeight = scrollTrack.clientHeight - scrollThumb.clientHeight;
+        scrollThumb.style.top = Math.max(0, Math.min(scrollPercent * trackHeight, trackHeight)) + 'px';
+    }
+    contentArea.addEventListener('scroll', () => { updateThumbPosition(); updateScrollBarState(); });
+
+    scrollTrack.addEventListener('mousedown', e => {
+        if (e.target === scrollThumb || scrollBar.classList.contains('disabled')) return;
+        const rect = scrollTrack.getBoundingClientRect();
+        const thumbHeight = scrollThumb.clientHeight;
+        const clickY = e.clientY - rect.top - thumbHeight / 2;
+        const maxTop = scrollTrack.clientHeight - thumbHeight;
+        const clampedY = Math.max(0, Math.min(clickY, maxTop));
+        const percent = maxTop > 0 ? clampedY / maxTop : 0;
+        const maxScroll = contentArea.scrollHeight - contentArea.clientHeight;
+        contentArea.scrollTop = percent * maxScroll;
+        updateThumbPosition();
+    });
+
+    scrollThumb.addEventListener('mousedown', e => {
+        e.preventDefault();
+        if (scrollBar.classList.contains('disabled')) return;
+        isDraggingScroll = true; dragStartY = e.clientY;
+        thumbStartTop = parseFloat(scrollThumb.style.top) || 0;
+        document.body.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!isDraggingScroll) return;
+        const deltaY = e.clientY - dragStartY;
+        const thumbHeight = scrollThumb.clientHeight;
+        const trackHeight = scrollTrack.clientHeight;
+        const maxTop = trackHeight - thumbHeight;
+        let newTop = Math.max(0, Math.min(thumbStartTop + deltaY, maxTop));
+        scrollThumb.style.top = newTop + 'px';
+        const percent = maxTop > 0 ? newTop / maxTop : 0;
+        const maxScroll = contentArea.scrollHeight - contentArea.clientHeight;
+        contentArea.scrollTop = percent * maxScroll;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isDraggingScroll) { isDraggingScroll = false; document.body.style.cursor = ''; }
+    });
+
+    let scrollInterval = null;
+    function startScroll(direction) {
+        if (scrollInterval || scrollBar.classList.contains('disabled')) return;
+        const step = direction === 'up' ? -15 : 15;
+        scrollInterval = setInterval(() => { contentArea.scrollTop += step; updateThumbPosition(); }, 60);
+    }
+    function stopScroll() { if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; } }
+    scrollUp.addEventListener('mousedown', e => { e.preventDefault(); startScroll('up'); });
+    scrollUp.addEventListener('mouseup', stopScroll); scrollUp.addEventListener('mouseleave', stopScroll);
+    scrollDown.addEventListener('mousedown', e => { e.preventDefault(); startScroll('down'); });
+    scrollDown.addEventListener('mouseup', stopScroll); scrollDown.addEventListener('mouseleave', stopScroll);
+    window.addEventListener('resize', updateScrollBarState);
+
+    function renderAppList() {
+        contentArea.innerHTML = ''; appListContainer.innerHTML = '';
+        noResults.classList.remove('show');
+        let filtered = pcApps;
+        if (currentCategory === 'apps') filtered = pcApps.filter(app => app.category === 'apps');
+        else if (currentCategory === 'games') filtered = pcApps.filter(app => app.category === 'games');
+
+        if (!filtered || filtered.length === 0) {
+            const msg = document.createElement('div');
+            msg.className = 'app-row';
+            msg.style.cssText = 'justify-content:center;padding:20px;color:#444;';
+            msg.textContent = '暂无应用，请检查 pcapp.js 文件';
+            contentArea.appendChild(msg);
+            setTimeout(updateScrollBarState, 50);
+            return;
+        }
+
+        filtered.forEach(app => {
+            const row = document.createElement('div');
+            row.className = 'app-row';
+            const shareUrl = getFullLoadlyUrl(app.code);
+            row.innerHTML = `
+                <span class="app-name">${escapeHtml(app.name)}</span>
+                <div class="app-actions">
+                    <button class="nt-btn download-btn" data-shareurl="${shareUrl}">下载</button>
+                </div>`;
+            appListContainer.appendChild(row);
+        });
+        contentArea.appendChild(appListContainer);
+
+        document.querySelectorAll('.download-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                handleDownload(this.dataset.shareurl);
+            });
+        });
+        setTimeout(updateScrollBarState, 50);
+    }
+
+    async function handleDownload(shareUrl) {
+        try {
+            const directUrl = await window.extractDirectUrl(shareUrl, 'zip', 2);
+            if (directUrl) {
+                const a = document.createElement('a');
+                a.href = directUrl; a.download = ''; a.target = '_blank';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            }
+        } catch (error) { console.error(error); }
+    }
+
+    function renderMusicList() {
+        contentArea.innerHTML = ''; appListContainer.innerHTML = '';
+        noResults.classList.remove('show');
+        const songs = currentDisplaySongs.length > 0 ? currentDisplaySongs : getRandomSongs(5);
+
+        if (!songs || songs.length === 0) {
+            const msg = document.createElement('div');
+            msg.className = 'app-row';
+            msg.style.cssText = 'justify-content:center;padding:20px;color:#444;';
+            msg.textContent = '暂无歌曲，请检查 music.js 文件';
+            contentArea.appendChild(msg);
+            setTimeout(updateScrollBarState, 50);
+            return;
+        }
+
+        songs.forEach((song, index) => {
+            const row = document.createElement('div');
+            row.className = 'app-row';
+            const mp3Url = getFullLoadlyUrl(song.mp3);
+            const lyricUrl = song.lyric ? getFullLoadlyUrl(song.lyric) : '';
+            row.innerHTML = `
+                <span class="app-name">${escapeHtml(song.title)}</span>
+                <span class="app-artist">${escapeHtml(song.artist || '未知歌手')}</span>
+                <div class="app-actions">
+                    <button class="nt-btn play-music-btn" data-mp3="${mp3Url}" data-lyric="${lyricUrl}" data-title="${escapeHtml(song.title)}" data-artist="${escapeHtml(song.artist || '未知歌手')}">播放</button>
+                </div>`;
+            contentArea.appendChild(row);
+        });
+        bindMusicPlayBtns();
+        setTimeout(updateScrollBarState, 50);
+    }
+
+    function getMovieEpisodesLabel(movie) {
+        const eps = movie.episodes || [];
+        if (eps.length <= 1) {
+            const only = eps[0];
+            if (only && /第\s*\d+\s*集/.test(only.name)) {
+                const num = (only.name.match(/第\s*(\d+)\s*集/) || [])[1];
+                return num ? '<span class="app-artist">共 ' + num + ' 集</span>' : '';
+            }
+            return '';
+        }
+        return '<span class="app-artist">共 ' + eps.length + ' 集</span>';
+    }
+
+    function renderMoviesGrid(keyword) {
+        contentArea.innerHTML = ''; appListContainer.innerHTML = '';
+        noResults.classList.remove('show');
+        if (!movieData || movieData.length === 0) {
+            const msg = document.createElement('div');
+            msg.className = 'app-row';
+            msg.style.cssText = 'justify-content:center;padding:20px;color:#444;';
+            msg.textContent = '暂无电影，请检查 movie.js 文件';
+            contentArea.appendChild(msg);
+            setTimeout(updateScrollBarState, 50);
+            return;
+        }
+        let filtered = movieData;
+        if (keyword && keyword.trim()) {
+            const kw = keyword.trim().toLowerCase();
+            filtered = movieData.filter(m => m.title.toLowerCase().includes(kw));
+        }
+        if (filtered.length === 0) { noResults.classList.add('show'); setTimeout(updateScrollBarState, 50); return; }
+
+        filtered.forEach(movie => {
+            const row = document.createElement('div');
+            row.className = 'app-row';
+            row.innerHTML = `
+                <span class="app-name">${escapeHtml(movie.title)}</span>
+                ${getMovieEpisodesLabel(movie)}
+                <div class="app-actions">
+                    <button class="nt-btn play-movie-btn" data-id="${movie.id}">播放</button>
+                </div>`;
+            contentArea.appendChild(row);
+        });
+
+        document.querySelectorAll('.play-movie-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const movie = movieData.find(m => m.id === this.dataset.id);
+                if (movie) openMoviePlayer(movie);
+            });
+        });
+        setTimeout(updateScrollBarState, 50);
+    }
+
+    // ============================================================
+    // 图书分区渲染
+    // ============================================================
+    function renderBooksGrid() {
+        contentArea.innerHTML = ''; appListContainer.innerHTML = '';
+        noResults.classList.remove('show');
+
+        if (!txtBooksLoaded || !comicBooksLoaded) {
+            const msg = document.createElement('div');
+            msg.className = 'app-row';
+            msg.style.cssText = 'justify-content:center;padding:20px;color:#444;';
+            msg.textContent = '正在加载图书列表...';
+            contentArea.appendChild(msg);
+            setTimeout(updateScrollBarState, 50);
+            return;
+        }
+
+        const allItems = [];
+        txtBooks.forEach(function(b) { allItems.push({ type: 'novel', name: b.name, data: b }); });
+        comicBooks.forEach(function(c) { allItems.push({ type: 'comic', name: c.name, data: c }); });
+
+        if (allItems.length === 0) {
+            const msg = document.createElement('div');
+            msg.className = 'app-row';
+            msg.style.cssText = 'justify-content:center;padding:20px;color:#444;';
+            msg.textContent = '暂无图书';
+            contentArea.appendChild(msg);
+            setTimeout(updateScrollBarState, 50);
+            return;
+        }
+
+        allItems.forEach(function(item) {
+            const row = document.createElement('div');
+            row.className = 'book-row';
+            const typeLabel = item.type === 'novel' ? '小说' : '漫画';
+            row.innerHTML = `
+                <span class="book-name">${escapeHtml(item.name)}</span>
+                <span class="book-type">${typeLabel}</span>
+                <div class="book-actions">
+                    <button class="nt-btn read-book-btn" data-type="${item.type}" data-id="${item.data.id}">阅读</button>
+                </div>
+            `;
+            contentArea.appendChild(row);
+        });
+
+        contentArea.querySelectorAll('.read-book-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const type = this.dataset.type;
+                const id = this.dataset.id;
+                if (type === 'novel') {
+                    const book = txtBooks.find(function(b) { return b.id === id; });
+                    if (book) openNovelReader(book);
+                } else {
+                    const comic = comicBooks.find(function(c) { return c.id === id; });
+                    if (comic) openComicReader(comic);
+                }
+            });
+        });
+
+        setTimeout(updateScrollBarState, 50);
+    }
+
+    function renderBooksGridFiltered(keyword) {
+        contentArea.innerHTML = ''; appListContainer.innerHTML = '';
+        noResults.classList.remove('show');
+
+        const allItems = [];
+        txtBooks.forEach(function(b) {
+            if (!keyword || b.name.toLowerCase().includes(keyword)) {
+                allItems.push({ type: 'novel', name: b.name, data: b });
+            }
+        });
+        comicBooks.forEach(function(c) {
+            if (!keyword || c.name.toLowerCase().includes(keyword)) {
+                allItems.push({ type: 'comic', name: c.name, data: c });
+            }
+        });
+
+        if (allItems.length === 0) {
+            noResults.classList.add('show');
+            setTimeout(updateScrollBarState, 50);
+            return;
+        }
+
+        allItems.forEach(function(item) {
+            const row = document.createElement('div');
+            row.className = 'book-row';
+            const typeLabel = item.type === 'novel' ? '小说' : '漫画';
+            row.innerHTML = `
+                <span class="book-name">${escapeHtml(item.name)}</span>
+                <span class="book-type">${typeLabel}</span>
+                <div class="book-actions">
+                    <button class="nt-btn read-book-btn" data-type="${item.type}" data-id="${item.data.id}">阅读</button>
+                </div>
+            `;
+            contentArea.appendChild(row);
+        });
+
+        contentArea.querySelectorAll('.read-book-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const type = this.dataset.type;
+                const id = this.dataset.id;
+                if (type === 'novel') {
+                    const book = txtBooks.find(function(b) { return b.id === id; });
+                    if (book) openNovelReader(book);
+                } else {
+                    const comic = comicBooks.find(function(c) { return c.id === id; });
+                    if (comic) openComicReader(comic);
+                }
+            });
+        });
+        setTimeout(updateScrollBarState, 50);
+    }
+
+    // ============================================================
+    // 小说阅读器
+    // ============================================================
+    let novelCurrentBookId = null;
+    let novelSaveTimeout = null;
+    let novelCancelDownload = false;
+    let novelDragData = { isDragging: false, offsetX: 0, offsetY: 0 };
+    let isNovelMinimized = false, isNovelMaximized = false, isNovelClosed = false;
+
+    function novelSaveProgress(bookId, percent) {
+        try {
+            var p = JSON.parse(localStorage.getItem('book_progress_scroll') || '{}');
+            p[bookId] = percent;
+            localStorage.setItem('book_progress_scroll', JSON.stringify(p));
+        } catch(e) {}
+    }
+    function novelLoadProgress(bookId) {
+        try { return JSON.parse(localStorage.getItem('book_progress_scroll') || '{}')[bookId] || 0; } catch(e) { return 0; }
+    }
+    function novelSaveFullContent(bookId, content) {
+        try { localStorage.setItem('book_full_' + bookId, content); } catch(e) {}
+    }
+    function novelGetFullContent(bookId) {
+        try { return localStorage.getItem('book_full_' + bookId); } catch(e) { return null; }
+    }
+
+    async function novelGetTxtDirectUrl(shareUrl, retry) {
+        retry = retry || 0;
+        try {
+            var directUrl = await window.extractDirectUrl(shareUrl, 'txt');
+            if (directUrl) return directUrl;
+            throw new Error('未找到TXT直链');
+        } catch(e) {
+            if (retry < 2) {
+                await new Promise(function(r) { setTimeout(r, 800); });
+                return novelGetTxtDirectUrl(shareUrl, retry + 1);
+            }
+            throw e;
+        }
+    }
+
+    async function novelStreamAndCache(book) {
+        novelCancelDownload = false;
+        var direct = await novelGetTxtDirectUrl(book.url);
+        var res = await fetch(direct);
+        var reader = res.body.getReader ? res.body.getReader() : null;
+        var decoder = new TextDecoder();
+        var full = '';
+        if (reader) {
+            while (true) {
+                if (novelCancelDownload) break;
+                var result = await reader.read();
+                if (result.done) break;
+                full += decoder.decode(result.value, { stream: true });
+            }
+        } else {
+            full = await res.text();
+        }
+        novelSaveFullContent(book.id, full);
+        return full;
+    }
+
+    function updateNovelScrollBarState() {
+        var needsScroll = novelTextArea.scrollHeight > novelTextArea.clientHeight;
+        novelScrollBar.classList.toggle('disabled', !needsScroll);
+        updateNovelThumbPosition();
+    }
+    function updateNovelThumbPosition() {
+        var maxScroll = novelTextArea.scrollHeight - novelTextArea.clientHeight;
+        var scrollPercent = maxScroll > 0 ? novelTextArea.scrollTop / maxScroll : 0;
+        var trackHeight = novelScrollTrack.clientHeight - novelScrollThumb.clientHeight;
+        novelScrollThumb.style.top = Math.max(0, Math.min(scrollPercent * trackHeight, trackHeight)) + 'px';
+    }
+    novelTextArea.addEventListener('scroll', () => {
+        updateNovelThumbPosition();
+        updateNovelScrollBarState();
+        if (novelSaveTimeout) clearTimeout(novelSaveTimeout);
+        novelSaveTimeout = setTimeout(function() {
+            if (novelCurrentBookId && novelTextArea) {
+                var max = novelTextArea.scrollHeight - novelTextArea.clientHeight;
+                novelSaveProgress(novelCurrentBookId, max > 0 ? novelTextArea.scrollTop / max * 100 : 0);
+            }
+        }, 200);
+    });
+
+    novelScrollTrack.addEventListener('mousedown', e => {
+        if (e.target === novelScrollThumb || novelScrollBar.classList.contains('disabled')) return;
+        const rect = novelScrollTrack.getBoundingClientRect();
+        const thumbHeight = novelScrollThumb.clientHeight;
+        const clickY = e.clientY - rect.top - thumbHeight / 2;
+        const maxTop = novelScrollTrack.clientHeight - thumbHeight;
+        const clampedY = Math.max(0, Math.min(clickY, maxTop));
+        const percent = maxTop > 0 ? clampedY / maxTop : 0;
+        const maxScroll = novelTextArea.scrollHeight - novelTextArea.clientHeight;
+        novelTextArea.scrollTop = percent * maxScroll;
+        updateNovelThumbPosition();
+    });
+
+    let isNovelThumbDragging = false, novelThumbStartY = 0, novelThumbStartTop = 0;
+    novelScrollThumb.addEventListener('mousedown', e => {
+        e.preventDefault();
+        if (novelScrollBar.classList.contains('disabled')) return;
+        isNovelThumbDragging = true;
+        novelThumbStartY = e.clientY;
+        novelThumbStartTop = parseFloat(novelScrollThumb.style.top) || 0;
+        document.body.style.cursor = 'grabbing';
+    });
+    document.addEventListener('mousemove', e => {
+        if (!isNovelThumbDragging) return;
+        const deltaY = e.clientY - novelThumbStartY;
+        const thumbHeight = novelScrollThumb.clientHeight;
+        const trackHeight = novelScrollTrack.clientHeight;
+        const maxTop = trackHeight - thumbHeight;
+        let newTop = Math.max(0, Math.min(novelThumbStartTop + deltaY, maxTop));
+        novelScrollThumb.style.top = newTop + 'px';
+        const percent = maxTop > 0 ? newTop / maxTop : 0;
+        const maxScroll = novelTextArea.scrollHeight - novelTextArea.clientHeight;
+        novelTextArea.scrollTop = percent * maxScroll;
+    });
+    document.addEventListener('mouseup', () => {
+        if (isNovelThumbDragging) { isNovelThumbDragging = false; document.body.style.cursor = ''; }
+    });
+
+    let novelScrollInterval = null;
+    function startNovelScroll(direction) {
+        if (novelScrollInterval || novelScrollBar.classList.contains('disabled')) return;
+        const step = direction === 'up' ? -15 : 15;
+        novelScrollInterval = setInterval(() => { novelTextArea.scrollTop += step; updateNovelThumbPosition(); }, 60);
+    }
+    function stopNovelScroll() { if (novelScrollInterval) { clearInterval(novelScrollInterval); novelScrollInterval = null; } }
+    novelScrollUp.addEventListener('mousedown', e => { e.preventDefault(); startNovelScroll('up'); });
+    novelScrollUp.addEventListener('mouseup', stopNovelScroll); novelScrollUp.addEventListener('mouseleave', stopNovelScroll);
+    novelScrollDown.addEventListener('mousedown', e => { e.preventDefault(); startNovelScroll('down'); });
+    novelScrollDown.addEventListener('mouseup', stopNovelScroll); novelScrollDown.addEventListener('mouseleave', stopNovelScroll);
+
+    async function openNovelReader(book) {
+        novelWindow.style.display = 'flex';
+        isNovelClosed = false;
+        isNovelMinimized = false;
+        isNovelMaximized = false;
+        updateNovelWindowState();
+        novelTitleText.textContent = book.name;
+        novelCurrentBookId = book.id;
+        novelTextArea.textContent = '加载中...';
+
+        try {
+            var full = novelGetFullContent(book.id) || await novelStreamAndCache(book);
+            novelTextArea.innerHTML = escapeHtml(full).replace(/\n/g, '<br>');
+            var pct = novelLoadProgress(book.id);
+            if (pct > 0) {
+                setTimeout(function() {
+                    var maxScroll = novelTextArea.scrollHeight - novelTextArea.clientHeight;
+                    novelTextArea.scrollTop = (pct / 100) * maxScroll;
+                    updateNovelThumbPosition();
+                    updateNovelScrollBarState();
+                }, 100);
+            } else {
+                updateNovelScrollBarState();
+            }
+        } catch(e) {
+            novelTextArea.innerHTML = '<div style="text-align:center;padding:40px;">加载失败: ' + escapeHtml(e.message) + '</div>';
+        }
+    }
+
+    function updateNovelWindowState() {
+        novelWindow.classList.remove('minimized', 'maximized', 'closed');
+        if (isNovelClosed) { novelWindow.classList.add('closed'); return; }
+        if (isNovelMinimized) novelWindow.classList.add('minimized');
+        else if (isNovelMaximized) novelWindow.classList.add('maximized');
+    }
+
+    novelTitlebar.addEventListener('mousedown', e => {
+        if (isNovelMaximized || isNovelClosed) return;
+        novelDragData.isDragging = true;
+        const rect = novelWindow.getBoundingClientRect();
+        novelDragData.offsetX = e.clientX - rect.left;
+        novelDragData.offsetY = e.clientY - rect.top;
+        novelTitlebar.style.cursor = 'grabbing';
+        document.addEventListener('mousemove', onNovelDrag);
+        document.addEventListener('mouseup', stopNovelDrag);
+        e.preventDefault();
+    });
+    function onNovelDrag(e) {
+        if (!novelDragData.isDragging) return;
+        let left = Math.max(0, Math.min(window.innerWidth - novelWindow.offsetWidth, e.clientX - novelDragData.offsetX));
+        let top = Math.max(0, Math.min(window.innerHeight - novelWindow.offsetHeight, e.clientY - novelDragData.offsetY));
+        novelWindow.style.left = left + 'px'; novelWindow.style.top = top + 'px';
+    }
+    function stopNovelDrag() {
+        novelDragData.isDragging = false;
+        novelTitlebar.style.cursor = 'grab';
+        document.removeEventListener('mousemove', onNovelDrag);
+        document.removeEventListener('mouseup', stopNovelDrag);
+    }
+
+    novelMinBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        isNovelMinimized = !isNovelMinimized;
+        if (isNovelMinimized) isNovelMaximized = false;
+        updateNovelWindowState();
+    });
+    novelMaxBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        isNovelMaximized = !isNovelMaximized;
+        if (isNovelMaximized) isNovelMinimized = false;
+        updateNovelWindowState();
+    });
+    novelCloseBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        isNovelClosed = true;
+        novelCancelDownload = true;
+        updateNovelWindowState();
+    });
+
+    // ============================================================
+    // 漫画阅读器
+    // ============================================================
+    let comicState = {
+        link: '', name: '', pages: [], currentPage: 0,
+        isLoading: false, abortSignal: null,
+        dragData: { isDragging: false, offsetX: 0, offsetY: 0 },
+        isMinimized: false, isMaximized: false, isClosed: false
+    };
+
+    const COMIC_DB_NAME = 'ComicCacheDB';
+    const COMIC_STORE_NAME = 'comicData';
+    const COMIC_DB_VERSION = 2;
+
+    function openComicDB() {
+        return new Promise(function(resolve, reject) {
+            var request = indexedDB.open(COMIC_DB_NAME, COMIC_DB_VERSION);
+            request.onupgradeneeded = function(event) {
+                var db = event.target.result;
+                if (!db.objectStoreNames.contains(COMIC_STORE_NAME)) {
+                    db.createObjectStore(COMIC_STORE_NAME, { keyPath: 'id' });
+                }
+            };
+            request.onsuccess = function() { resolve(request.result); };
+            request.onerror = function() { reject(request.error); };
+        });
+    }
+    function getComicCacheKey(link) {
+        var full = link.trim();
+        if (!full.startsWith('http')) full = 'https://loadly.io/' + full.replace(/^\/+/, '');
+        return full.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    }
+    async function hasCachedComic(link) {
+        try {
+            var db = await openComicDB();
+            var key = getComicCacheKey(link);
+            return new Promise(function(resolve) {
+                var tx = db.transaction(COMIC_STORE_NAME, 'readonly');
+                var store = tx.objectStore(COMIC_STORE_NAME);
+                var getReq = store.get(key);
+                getReq.onsuccess = function() { resolve(!!getReq.result); };
+                getReq.onerror = function() { resolve(false); };
+                tx.oncomplete = function() { db.close(); };
+            });
+        } catch(e) { return false; }
+    }
+    async function getCachedComic(link) {
+        try {
+            var db = await openComicDB();
+            var key = getComicCacheKey(link);
+            return new Promise(function(resolve, reject) {
+                var tx = db.transaction(COMIC_STORE_NAME, 'readonly');
+                var store = tx.objectStore(COMIC_STORE_NAME);
+                var getReq = store.get(key);
+                getReq.onsuccess = function() { resolve(getReq.result || null); };
+                getReq.onerror = function() { reject(getReq.error); };
+                tx.oncomplete = function() { db.close(); };
+            });
+        } catch(e) { return null; }
+    }
+    async function saveCachedComic(link, name, images, total) {
+        try {
+            var db = await openComicDB();
+            var key = getComicCacheKey(link);
+            var imageEntries = [];
+            for (var i = 0; i < images.length && i < total; i++) {
+                var img = images[i];
+                imageEntries.push({ name: img.name || 'page_' + (i+1), blob: img.blob || null, type: img.type || null });
+            }
+            var data = { id: key, name: name, total: total, images: imageEntries, timestamp: Date.now() };
+            return new Promise(function(resolve, reject) {
+                var tx = db.transaction(COMIC_STORE_NAME, 'readwrite');
+                var store = tx.objectStore(COMIC_STORE_NAME);
+                var putReq = store.put(data);
+                putReq.onsuccess = function() { resolve(); };
+                putReq.onerror = function() { reject(putReq.error); };
+                tx.oncomplete = function() { db.close(); };
+            });
+        } catch(e) {}
+    }
+
+    const COMIC_PROGRESS_KEY = 'comic_reader_progress_v5';
+    function getComicProgress(link) {
+        try {
+            var data = JSON.parse(localStorage.getItem(COMIC_PROGRESS_KEY) || '{}');
+            return data[getComicCacheKey(link)] || 0;
+        } catch(e) { return 0; }
+    }
+    function saveComicProgress(link, idx) {
+        try {
+            var data = JSON.parse(localStorage.getItem(COMIC_PROGRESS_KEY) || '{}');
+            data[getComicCacheKey(link)] = idx;
+            localStorage.setItem(COMIC_PROGRESS_KEY, JSON.stringify(data));
+        } catch(e) {}
+    }
+
+    function showComicPage(idx) {
+        if (idx < 0 || idx >= comicState.pages.length) return;
+        comicState.currentPage = idx;
+        saveComicProgress(comicState.link, idx);
+        var page = comicState.pages[idx];
+        if (page && page.url) {
+            comicImageArea.innerHTML = '';
+            var img = document.createElement('img');
+            img.src = page.url;
+            img.onerror = function() {
+                comicImageArea.innerHTML = '<div class="comic-placeholder">图片加载失败</div>';
+            };
+            comicImageArea.appendChild(img);
+        } else {
+            comicImageArea.innerHTML = '<div class="comic-placeholder">加载中...</div>';
+        }
+        comicPageInfo.textContent = (idx + 1) + ' / ' + comicState.pages.length;
+        comicPrevBtn.disabled = (idx <= 0);
+        comicNextBtn.disabled = (idx >= comicState.pages.length - 1);
+    }
+
+    async function extractZipDirectUrl(shareUrl, retry) {
+        retry = retry || 0;
+        var normalized = shareUrl.trim();
+        if (!normalized.startsWith('http')) {
+            if (normalized.startsWith('loadly.io/')) normalized = 'https://' + normalized;
+            else normalized = 'https://loadly.io/' + normalized.replace(/^\/+/, '');
+        }
+        try {
+            var directUrl = await window.extractDirectUrl(normalized, 'zip');
+            if (directUrl) return directUrl;
+            throw new Error('未找到ZIP直链');
+        } catch(err) {
+            if (retry < 2) {
+                await new Promise(function(r) { setTimeout(r, 800); });
+                return extractZipDirectUrl(normalized, retry + 1);
+            }
+            throw err;
+        }
+    }
+
+    async function openComicReader(comic) {
+        comicWindow.style.display = 'flex';
+        comicState.isClosed = false;
+        comicState.isMinimized = false;
+        comicState.isMaximized = false;
+        updateComicWindowState();
+        comicTitleText.textContent = comic.name;
+        comicState.link = comic.url;
+        comicState.name = comic.name;
+        comicImageArea.innerHTML = '<div class="comic-placeholder">加载中...</div>';
+        comicPageInfo.textContent = '0 / 0';
+        comicPrevBtn.disabled = true;
+        comicNextBtn.disabled = true;
+        comicState.pages = [];
+        comicState.currentPage = 0;
+
+        try {
+            var hasCache = await hasCachedComic(comic.url);
+            if (hasCache) {
+                var cached = await getCachedComic(comic.url);
+                if (cached && cached.images && cached.images.length) {
+                    comicState.pages = [];
+                    for (var i = 0; i < cached.images.length; i++) {
+                        var img = cached.images[i];
+                        if (img && img.blob) {
+                            comicState.pages.push({ url: URL.createObjectURL(img.blob), name: img.name });
+                        } else {
+                            comicState.pages.push({ url: null, name: img ? img.name : ('page_' + (i+1)) });
+                        }
+                    }
+                    var savedIdx = getComicProgress(comic.url);
+                    showComicPage(savedIdx >= 0 && savedIdx < comicState.pages.length ? savedIdx : 0);
+                    return;
+                }
+            }
+
+            var directUrl = await extractZipDirectUrl(comic.url);
+            var response = await fetch(directUrl);
+            if (!response.ok) throw new Error('下载失败: ' + response.status);
+            var blob = await response.blob();
+            var zip = await JSZip.loadAsync(blob);
+            var allEntries = [];
+            zip.forEach(function(path, file) {
+                if (!file.dir) allEntries.push({ path: path, file: file });
+            });
+            var exts = ['.jpg','.jpeg','.png','.gif','.webp','.bmp','.jfif'];
+            var images = allEntries.filter(function(e) {
+                return exts.some(function(ext) { return e.path.toLowerCase().endsWith(ext); });
+            });
+            images.sort(function(a, b) { return a.path.localeCompare(b.path, undefined, { numeric: true }); });
+            if (!images.length) throw new Error('未找到图片');
+
+            comicState.pages = [];
+            var cacheImages = [];
+            for (var i = 0; i < images.length; i++) {
+                var imgBlob = await images[i].file.async('blob');
+                var url = URL.createObjectURL(imgBlob);
+                comicState.pages.push({ url: url, name: images[i].path });
+                cacheImages.push({ name: images[i].path, blob: imgBlob, type: imgBlob.type });
+            }
+            saveCachedComic(comic.url, comic.name, cacheImages, images.length);
+
+            var savedIdx = getComicProgress(comic.url);
+            showComicPage(savedIdx >= 0 && savedIdx < comicState.pages.length ? savedIdx : 0);
+
+        } catch(e) {
+            comicImageArea.innerHTML = '<div class="comic-placeholder">加载失败: ' + escapeHtml(e.message) + '</div>';
+        }
+    }
+
+    function updateComicWindowState() {
+        comicWindow.classList.remove('minimized', 'maximized', 'closed');
+        if (comicState.isClosed) { comicWindow.classList.add('closed'); return; }
+        if (comicState.isMinimized) comicWindow.classList.add('minimized');
+        else if (comicState.isMaximized) comicWindow.classList.add('maximized');
+    }
+
+    comicTitlebar.addEventListener('mousedown', e => {
+        if (comicState.isMaximized || comicState.isClosed) return;
+        comicState.dragData.isDragging = true;
+        var rect = comicWindow.getBoundingClientRect();
+        comicState.dragData.offsetX = e.clientX - rect.left;
+        comicState.dragData.offsetY = e.clientY - rect.top;
+        comicTitlebar.style.cursor = 'grabbing';
+        document.addEventListener('mousemove', onComicDrag);
+        document.addEventListener('mouseup', stopComicDrag);
+        e.preventDefault();
+    });
+    function onComicDrag(e) {
+        if (!comicState.dragData.isDragging) return;
+        var left = Math.max(0, Math.min(window.innerWidth - comicWindow.offsetWidth, e.clientX - comicState.dragData.offsetX));
+        var top = Math.max(0, Math.min(window.innerHeight - comicWindow.offsetHeight, e.clientY - comicState.dragData.offsetY));
+        comicWindow.style.left = left + 'px'; comicWindow.style.top = top + 'px';
+    }
+    function stopComicDrag() {
+        comicState.dragData.isDragging = false;
+        comicTitlebar.style.cursor = 'grab';
+        document.removeEventListener('mousemove', onComicDrag);
+        document.removeEventListener('mouseup', stopComicDrag);
+    }
+    comicMinBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        comicState.isMinimized = !comicState.isMinimized;
+        if (comicState.isMinimized) comicState.isMaximized = false;
+        updateComicWindowState();
+    });
+    comicMaxBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        comicState.isMaximized = !comicState.isMaximized;
+        if (comicState.isMaximized) comicState.isMinimized = false;
+        updateComicWindowState();
+    });
+    comicCloseBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        comicState.isClosed = true;
+        updateComicWindowState();
+    });
+    comicPrevBtn.addEventListener('click', function() {
+        if (comicState.currentPage > 0) showComicPage(comicState.currentPage - 1);
+    });
+    comicNextBtn.addEventListener('click', function() {
+        if (comicState.currentPage < comicState.pages.length - 1) showComicPage(comicState.currentPage + 1);
+    });
+
+    // ============================================================
+    // 音乐播放器
+    // ============================================================
+    function updateWindowState() {
+        miniWindow.classList.remove('minimized', 'maximized', 'closed');
+        if (isClosed) { miniWindow.classList.add('closed'); return; }
+        if (isMinimized) miniWindow.classList.add('minimized');
+        else if (isMaximized) miniWindow.classList.add('maximized');
+    }
+
+    miniTitlebar.addEventListener('mousedown', e => {
+        if (isMaximized || isClosed) return;
+        dragData.isDragging = true;
+        const rect = miniWindow.getBoundingClientRect();
+        dragData.offsetX = e.clientX - rect.left;
+        dragData.offsetY = e.clientY - rect.top;
+        miniTitlebar.style.cursor = 'grabbing';
+        document.addEventListener('mousemove', onMiniDrag);
+        document.addEventListener('mouseup', stopMiniDrag);
+        e.preventDefault();
+    });
+    function onMiniDrag(e) {
+        if (!dragData.isDragging) return;
+        let left = Math.max(0, Math.min(window.innerWidth - miniWindow.offsetWidth, e.clientX - dragData.offsetX));
+        let top = Math.max(0, Math.min(window.innerHeight - miniWindow.offsetHeight, e.clientY - dragData.offsetY));
+        miniWindow.style.left = left + 'px'; miniWindow.style.top = top + 'px';
+    }
+    function stopMiniDrag() {
+        dragData.isDragging = false;
+        miniTitlebar.style.cursor = 'grab';
+        document.removeEventListener('mousemove', onMiniDrag);
+        document.removeEventListener('mouseup', stopMiniDrag);
+    }
+
+    miniMinBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (isClosed) return;
+        isMinimized = !isMinimized;
+        if (isMinimized) isMaximized = false;
+        updateWindowState();
+    });
+    miniMaxBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (isClosed) return;
+        if (isMinimized) { isMinimized = false; updateWindowState(); setTimeout(() => { isMaximized = !isMaximized; updateWindowState(); }, 50); return; }
+        isMaximized = !isMaximized;
+        updateWindowState();
+    });
+    miniCloseBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (currentMusicAbort) { try { currentMusicAbort.abort(); } catch(e){} currentMusicAbort = null; }
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+        if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+        isClosed = true; isMinimized = false; isMaximized = false;
+        updateWindowState();
+        miniPlayBtn.textContent = '▶';
+        document.title = 'APP Store';
+        stopViz();
+    });
+
+    function formatTime(seconds) {
+        if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '00:00';
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m] || m));
+    }
+
+    function parseMiniLRC(text) {
+        if (!text) return [];
+        const lines = text.split(/\r?\n/);
+        const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)/;
+        const parsed = [];
+        for (const line of lines) {
+            const match = line.match(timeRegex);
+            if (!match) continue;
+            const min = parseInt(match[1], 10);
+            const sec = parseInt(match[2], 10);
+            let ms = match[3] ? parseInt(match[3], 10) : 0;
+            if (match[3] && match[3].length === 2) ms *= 10;
+            const time = min * 60 + sec + ms / 1000;
+            const txt = match[4].trim();
+            if (!txt) continue;
+            parsed.push({ time, text: txt });
+        }
+        parsed.sort((a, b) => a.time - b.time);
+        return parsed;
+    }
+
+    function renderMiniLyrics(lines) {
+        miniLyrics.innerHTML = '';
+        currentLyricLineIndex = -1;
+        if (!lines || lines.length === 0) {
+            miniLyrics.innerHTML = '<div class="lyric-empty">暂无歌词</div>';
+            setTimeout(updateLyricsScrollBarState, 30);
+            return;
+        }
+        lines.forEach((line, idx) => {
+            const div = document.createElement('div');
+            div.className = 'lyric-line';
+            div.textContent = line.text;
+            div.dataset.lineIndex = idx;
+            div.dataset.time = line.time;
+            div.addEventListener('click', function() {
+                const time = parseFloat(this.dataset.time);
+                if (!isNaN(time) && time >= 0 && audio.duration && !isNaN(audio.duration)) {
+                    audio.currentTime = time;
+                    updateMiniTimeDisplay();
+                }
+            });
+            miniLyrics.appendChild(div);
+        });
+        setTimeout(updateLyricsScrollBarState, 30);
+    }
+
+    function updateMiniLyrics(currentTime) {
+        if (!currentLyricsLines || currentLyricsLines.length === 0) return;
+        let activeLineIdx = -1;
+        for (let i = 0; i < currentLyricsLines.length; i++) {
+            if (currentLyricsLines[i].time <= currentTime) activeLineIdx = i;
+            else break;
+        }
+        if (activeLineIdx !== currentLyricLineIndex) {
+            currentLyricLineIndex = activeLineIdx;
+            const lines = miniLyrics.querySelectorAll('.lyric-line');
+            lines.forEach(el => {
+                const li = parseInt(el.dataset.lineIndex, 10);
+                el.classList.toggle('active', li === activeLineIdx);
+            });
+            if (activeLineIdx >= 0) {
+                const line = miniLyrics.querySelector(`.lyric-line[data-line-index="${activeLineIdx}"]`);
+                if (line) line.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        }
+        if (activeLineIdx >= 0 && currentLyricsLines[activeLineIdx]) {
+            const t = currentLyricsLines[activeLineIdx].text.trim();
+            if (t) document.title = t;
+        }
+    }
+
+    function updateMiniTimeDisplay() {
+        const current = audio.currentTime || 0;
+        const duration = audio.duration || 0;
+        miniTimeLabel.textContent = formatTime(current);
+        miniDuration.textContent = formatTime(current) + ' / ' + formatTime(duration);
+        if (duration > 0 && !isNaN(duration)) miniProgress.value = (current / duration) * 100;
+        updateMiniLyrics(current);
+        updateLyricsThumbPosition();
+    }
+
+    async function extractCoverFromID3(arrayBuffer) {
+        try {
+            const data = new Uint8Array(arrayBuffer);
+            if (data.length < 10 || String.fromCharCode(data[0], data[1], data[2]) !== 'ID3') return null;
+            const size = ((data[6] & 0x7F) << 21) | ((data[7] & 0x7F) << 14) | ((data[8] & 0x7F) << 7) | (data[9] & 0x7F);
+            let pos = 10;
+            const end = Math.min(pos + size, data.length);
+            while (pos + 10 <= end) {
+                const frameId = String.fromCharCode(data[pos], data[pos+1], data[pos+2], data[pos+3]);
+                const frameSize = (data[pos+4] << 24) | (data[pos+5] << 16) | (data[pos+6] << 8) | data[pos+7];
+                if (frameSize === 0) break;
+                const start = pos + 10;
+                const frameEnd = Math.min(start + frameSize, data.length);
+                if (frameId === 'APIC') {
+                    let idx = start + 1;
+                    while (idx < frameEnd && data[idx] !== 0) idx++;
+                    idx++; idx++;
+                    while (idx < frameEnd && data[idx] !== 0) idx++;
+                    idx++;
+                    const imageData = data.slice(idx, frameEnd);
+                    if (imageData.length > 100) {
+                        let mimeType = 'image/jpeg';
+                        if (imageData[0] === 0x89 && imageData[1] === 0x50 && imageData[2] === 0x4E && imageData[3] === 0x47) mimeType = 'image/png';
+                        else if (imageData[0] === 0x47 && imageData[1] === 0x49 && imageData[2] === 0x46) mimeType = 'image/gif';
+                        return URL.createObjectURL(new Blob([imageData], { type: mimeType }));
+                    }
+                }
+                pos += 10 + frameSize;
+            }
+            return null;
+        } catch(e) { return null; }
+    }
+
+    async function fetchFirstBytes(url, maxBytes) {
+        maxBytes = maxBytes || 2097152;
+        const response = await fetch(url, { headers: { 'Range': 'bytes=0-' + (maxBytes - 1) } });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return await response.arrayBuffer();
+    }
+
+    function onLoadedMetadata() {
+        updateMiniTimeDisplay();
+        if (audio.paused) {
+            audio.play().then(() => { miniPlayBtn.textContent = '⏸'; }).catch(() => { miniPlayBtn.textContent = '▶'; });
+        }
+    }
+
+    audio.addEventListener('playing', () => { miniPlayBtn.textContent = '⏸'; startViz(); });
+    audio.addEventListener('pause', () => { if (!audio.ended) miniPlayBtn.textContent = '▶'; stopViz(); });
+
+    function onEnded() { miniPlayBtn.textContent = '▶'; stopViz(); playRandomNext(); }
+    function onError() { miniTitle.textContent = '播放错误'; stopViz(); }
+
+    async function loadMusicToMini(musicUrl, lyricUrl, title, artist) {
+        if (!musicUrl) { miniTitle.textContent = '无效链接'; return; }
+        if (isClosed) { isClosed = false; isMinimized = false; isMaximized = false; updateWindowState(); }
+        if (currentMusicAbort) { try { currentMusicAbort.abort(); } catch(e){} }
+        currentMusicAbort = new AbortController();
+
+        miniTitle.textContent = title || '未知歌曲';
+        miniArtist.textContent = artist || '未知歌手';
+        miniDuration.textContent = '00:00 / 00:00';
+        miniPlayBtn.textContent = '▶';
+        coverPlaceholder.style.display = 'block';
+        miniCoverImg.classList.remove('show');
+        stopViz();
+        currentLyricsLines = [];
+        renderMiniLyrics([]);
+        initVizBars();
+
+        try {
+            const [mp3Url, lrcUrl] = await Promise.all([
+                window.extractDirectUrl(musicUrl, 'mp3', 2, currentMusicAbort.signal),
+                lyricUrl ? window.extractDirectUrl(lyricUrl, 'lrc', 2, currentMusicAbort.signal) : Promise.resolve(null)
+            ]);
+            if (!mp3Url) throw new Error('未找到音乐直链');
+
+            audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+            audio.removeEventListener('timeupdate', updateMiniTimeDisplay);
+            audio.removeEventListener('ended', onEnded);
+            audio.removeEventListener('error', onError);
+
+            audio.crossOrigin = 'anonymous';
+            audio.src = mp3Url;
+            audio.load();
+
+            try {
+                const arrayBuffer = await fetchFirstBytes(mp3Url, 2097152);
+                const coverUrl = await extractCoverFromID3(arrayBuffer);
+                if (coverUrl) {
+                    miniCoverImg.src = coverUrl;
+                    miniCoverImg.classList.add('show');
+                    coverPlaceholder.style.display = 'none';
+                    miniCoverImg.onload = () => { extractCoverColors(miniCoverImg, applyColorsToBars); };
+                    if (miniCoverImg.complete) extractCoverColors(miniCoverImg, applyColorsToBars);
+                } else {
+                    applyColorsToBars([{ r: 30, g: 136, b: 229 }, { r: 100, g: 181, b: 246 }, { r: 255, g: 255, b: 255 }]);
+                }
+            } catch(e) {
+                applyColorsToBars([{ r: 30, g: 136, b: 229 }, { r: 100, g: 181, b: 246 }, { r: 255, g: 255, b: 255 }]);
+            }
+
+            if (lrcUrl) {
+                try {
+                    const lyricResp = await fetch(lrcUrl);
+                    const lyricText = await lyricResp.text();
+                    currentLyricsLines = parseMiniLRC(lyricText);
+                    renderMiniLyrics(currentLyricsLines);
+                } catch(e) { currentLyricsLines = []; renderMiniLyrics([]); }
+            } else { currentLyricsLines = []; renderMiniLyrics([]); }
+
+            audio.addEventListener('loadedmetadata', onLoadedMetadata);
+            audio.addEventListener('timeupdate', updateMiniTimeDisplay);
+            audio.addEventListener('ended', onEnded);
+            audio.addEventListener('error', onError);
+
+            audio.play().catch(() => { miniPlayBtn.textContent = '▶'; });
+        } catch (error) {
+            if (error.name === 'AbortError' || error.message === '已中止') return;
+            console.error(error);
+            miniTitle.textContent = '加载失败';
+            miniPlayBtn.textContent = '▶';
+        }
+    }
+
+    function playRandomNext() {
+        if (!musicData || musicData.length === 0) return;
+        let available = musicData.filter((_, idx) => idx !== currentPlayIndex);
+        if (available.length === 0) available = musicData;
+        const song = available[Math.floor(Math.random() * available.length)];
+        currentPlayIndex = musicData.indexOf(song);
+        loadMusicToMini(getFullLoadlyUrl(song.mp3), song.lyric ? getFullLoadlyUrl(song.lyric) : '', song.title, song.artist);
+    }
+    function playPrevSong() {
+        if (!musicData || musicData.length === 0) return;
+        currentPlayIndex = (currentPlayIndex - 1 + musicData.length) % musicData.length;
+        const song = musicData[currentPlayIndex];
+        loadMusicToMini(getFullLoadlyUrl(song.mp3), song.lyric ? getFullLoadlyUrl(song.lyric) : '', song.title, song.artist);
+    }
+    function playNextSong() {
+        if (!musicData || musicData.length === 0) return;
+        let available = musicData.filter((_, idx) => idx !== currentPlayIndex);
+        if (available.length === 0) available = musicData;
+        const song = available[Math.floor(Math.random() * available.length)];
+        currentPlayIndex = musicData.indexOf(song);
+        loadMusicToMini(getFullLoadlyUrl(song.mp3), song.lyric ? getFullLoadlyUrl(song.lyric) : '', song.title, song.artist);
+    }
+
+    function toggleMiniPlay() {
+        if (!audio.src) return;
+        if (audio.paused) {
+            audio.play().then(() => { miniPlayBtn.textContent = '⏸'; }).catch(() => { miniPlayBtn.textContent = '▶'; });
+        } else { audio.pause(); miniPlayBtn.textContent = '▶'; }
+    }
+    miniPlayBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); toggleMiniPlay(); };
+    miniPrevBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); playPrevSong(); };
+    miniNextBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); playNextSong(); };
+    miniProgress.oninput = function() {
+        if (!audio.src) return;
+        const dur = audio.duration;
+        if (!dur || isNaN(dur) || dur <= 0) return;
+        const percent = parseFloat(this.value) / 100;
+        const newTime = percent * dur;
+        miniTimeLabel.textContent = formatTime(newTime);
+        miniDuration.textContent = formatTime(newTime) + ' / ' + formatTime(dur);
+    };
+    miniProgress.onchange = function() {
+        if (!audio.src) return;
+        const dur = audio.duration;
+        if (!dur || isNaN(dur) || dur <= 0) return;
+        const percent = parseFloat(this.value) / 100;
+        audio.currentTime = percent * dur;
+        updateMiniTimeDisplay();
+    };
+
+    // ============================================================
+    // 电影播放器
+    // ============================================================
+    function updateMovieWindowState() {
+        movieWindow.classList.remove('minimized', 'maximized', 'closed');
+        if (isMovieClosed) { movieWindow.classList.add('closed'); return; }
+        if (isMovieMinimized) movieWindow.classList.add('minimized');
+        else if (isMovieMaximized) movieWindow.classList.add('maximized');
+    }
+
+    movieTitlebar.addEventListener('mousedown', e => {
+        if (isMovieMaximized || isMovieClosed) return;
+        movieDragData.isDragging = true;
+        const rect = movieWindow.getBoundingClientRect();
+        movieDragData.offsetX = e.clientX - rect.left;
+        movieDragData.offsetY = e.clientY - rect.top;
+        movieTitlebar.style.cursor = 'grabbing';
+        document.addEventListener('mousemove', onMovieDrag);
+        document.addEventListener('mouseup', stopMovieDrag);
+        e.preventDefault();
+    });
+    function onMovieDrag(e) {
+        if (!movieDragData.isDragging) return;
+        let left = Math.max(0, Math.min(window.innerWidth - movieWindow.offsetWidth, e.clientX - movieDragData.offsetX));
+        let top = Math.max(0, Math.min(window.innerHeight - movieWindow.offsetHeight, e.clientY - movieDragData.offsetY));
+        movieWindow.style.left = left + 'px'; movieWindow.style.top = top + 'px';
+    }
+    function stopMovieDrag() {
+        movieDragData.isDragging = false;
+        movieTitlebar.style.cursor = 'grab';
+        document.removeEventListener('mousemove', onMovieDrag);
+        document.removeEventListener('mouseup', stopMovieDrag);
+    }
+
+    let pipContext = null;
+    async function enterMoviePip() {
+        if (!currentMovieMedia) return;
+        pipContext = { mediaId: currentMovieMedia.id, epIndex: currentEpisodeIndex, time: movieVideo.currentTime || 0 };
+        try {
+            if (document.pictureInPictureElement) await document.exitPictureInPicture();
+            else if (movieVideo.src && movieVideo.readyState >= 2) await movieVideo.requestPictureInPicture();
+        } catch (err) { pipContext = null; return; }
+        isMovieClosed = true; isMovieMinimized = false; isMovieMaximized = false;
+        movieWindow.classList.add('closed');
+    }
+
+    movieVideo.addEventListener('leavepictureinpicture', async () => {
+        if (!pipContext) return;
+        const ctx = pipContext;
+        pipContext = null;
+        movieWindow.classList.remove('closed');
+        isMovieClosed = false; isMovieMinimized = false; isMovieMaximized = false;
+        movieWindow.style.display = 'flex';
+        updateMovieWindowState();
+        const media = movieData.find(m => m.id === ctx.mediaId);
+        if (media) {
+            currentMovieMedia = media;
+            currentEpisodeIndex = ctx.epIndex;
+            updateEpisodeButtons();
+            renderEpisodePanel();
+            if (movieVideo.src) {
+                try {
+                    if (isFinite(ctx.time)) movieVideo.currentTime = ctx.time;
+                    movieVideo.play().catch(() => {});
+                    moviePlayBtn.textContent = '⏸';
+                } catch (e) {}
+            }
+        }
+    });
+
+    movieMinBtn.addEventListener('click', async e => { e.stopPropagation(); if (isMovieClosed) return; await enterMoviePip(); });
+    movieMaxBtn.addEventListener('click', e => {
+        e.stopPropagation(); if (isMovieClosed) return;
+        isMovieMaximized = !isMovieMaximized;
+        if (isMovieMaximized) isMovieMinimized = false;
+        updateMovieWindowState();
+    });
+    movieCloseBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (currentMovieAbort) { try { currentMovieAbort.abort(); } catch(e){} currentMovieAbort = null; }
+        try { movieVideo.pause(); } catch(e){}
+        movieVideo.removeAttribute('src');
+        try { movieVideo.load(); } catch(e){}
+        if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+        pipContext = null;
+        isMovieClosed = true; isMovieMinimized = false; isMovieMaximized = false;
+        updateMovieWindowState();
+    });
+
+    episodeToggleBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        isEpisodePanelOpen = true;
+        movieRightCol.classList.add('open');
+        episodeToggleBtn.style.display = 'none';
+        panelToggleBtn.style.display = 'flex';
+        setTimeout(updateEpisodeScrollBarState, 60);
+    });
+    panelToggleBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        isEpisodePanelOpen = false;
+        movieRightCol.classList.remove('open');
+        panelToggleBtn.style.display = 'none';
+        episodeToggleBtn.style.display = 'flex';
+    });
+
+    async function openMoviePlayer(mediaItem) {
+        if (!mediaItem) return;
+        currentMovieMedia = mediaItem;
+        currentEpisodeIndex = 0;
+        isMovieClosed = false; isMovieMinimized = false; isMovieMaximized = false;
+        isEpisodePanelOpen = false;
+        movieRightCol.classList.remove('open');
+        episodeToggleBtn.style.display = 'flex';
+        panelToggleBtn.style.display = 'none';
+        movieWindow.style.display = 'flex';
+        updateMovieWindowState();
+        if (mediaItem.type === 'movie') {
+            movieTitleText.textContent = mediaItem.title;
+            episodeToggleBtn.style.display = 'none';
+            panelToggleBtn.style.display = 'none';
+        } else {
+            movieTitleText.textContent = mediaItem.title;
+        }
+        updateEpisodeButtons();
+        renderEpisodePanel();
+        await playEpisode(0);
+    }
+
+    function updateEpisodeButtons() {
+        if (!currentMovieMedia || currentMovieMedia.type !== 'tv') {
+            moviePrevBtn.disabled = true; movieNextBtn.disabled = true; return;
+        }
+        moviePrevBtn.disabled = (currentEpisodeIndex <= 0);
+        movieNextBtn.disabled = (currentEpisodeIndex >= currentMovieMedia.episodes.length - 1);
+    }
+
+    function renderEpisodePanel() {
+        episodeGrid.innerHTML = '';
+        if (!currentMovieMedia || currentMovieMedia.type !== 'tv') return;
+        currentMovieMedia.episodes.forEach((ep, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'episode-btn';
+            if (idx === currentEpisodeIndex) btn.classList.add('active');
+            btn.textContent = (idx + 1);
+            btn.title = '第 ' + (idx + 1) + ' 集';
+            btn.addEventListener('click', async () => {
+                currentEpisodeIndex = idx;
+                renderEpisodePanel();
+                updateEpisodeButtons();
+                await playEpisode(idx);
+            });
+            episodeGrid.appendChild(btn);
+        });
+        setTimeout(updateEpisodeScrollBarState, 50);
+    }
+
+    async function playEpisode(index) {
+        if (!currentMovieMedia) return;
+        const episode = currentMovieMedia.episodes[index];
+        if (!episode) return;
+        currentEpisodeIndex = index;
+        updateEpisodeButtons();
+        renderEpisodePanel();
+        if (currentMovieAbort) { try { currentMovieAbort.abort(); } catch(e){} }
+        currentMovieAbort = new AbortController();
+        const loadId = ++currentMovieLoadId;
+        try {
+            const shareUrl = getFullLoadlyUrl(episode.url);
+            const direct = await window.extractDirectUrl(shareUrl, 'mp4', 2, currentMovieAbort.signal);
+            if (loadId !== currentMovieLoadId) return;
+            if (!direct) throw new Error('未找到视频直链');
+            movieVideo.pause();
+            movieVideo.removeAttribute('src');
+            movieVideo.load();
+            movieVideo.src = direct;
+            movieVideo.load();
+            movieVideo.style.display = 'block';
+            moviePlaceholder.style.display = 'none';
+            if (currentMovieMedia.type === 'movie') {
+                movieTitleText.textContent = currentMovieMedia.title;
+            } else {
+                movieTitleText.textContent = currentMovieMedia.title + ' · 第 ' + (index + 1) + ' 集';
+            }
+            movieVideo.onloadedmetadata = () => {
+                if (loadId !== currentMovieLoadId) return;
+                movieVideo.play().catch(() => {});
+                moviePlayBtn.textContent = '⏸';
+                updateMovieProgressDisplay();
+            };
+            movieVideo.onended = () => {
+                if (loadId !== currentMovieLoadId) return;
+                moviePlayBtn.textContent = '▶';
+                if (currentMovieMedia.type === 'tv' && index < currentMovieMedia.episodes.length - 1) {
+                    currentEpisodeIndex = index + 1;
+                    playEpisode(currentEpisodeIndex);
+                }
+            };
+            movieVideo.play().catch(() => {});
+        } catch (error) {
+            if (error.name === 'AbortError' || error.message === '已中止') return;
+            if (loadId !== currentMovieLoadId) return;
+            console.error(error);
+            moviePlaceholder.textContent = '加载失败: ' + error.message;
+            moviePlaceholder.style.display = 'block';
+            movieVideo.style.display = 'none';
+        }
+    }
+
+    moviePlayBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!movieVideo.src) return;
+        if (movieVideo.paused) { movieVideo.play().catch(() => {}); moviePlayBtn.textContent = '⏸'; }
+        else { movieVideo.pause(); moviePlayBtn.textContent = '▶'; }
+    });
+    moviePrevBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!currentMovieMedia || currentMovieMedia.type !== 'tv') return;
+        if (currentEpisodeIndex > 0) playEpisode(currentEpisodeIndex - 1);
+    });
+    movieNextBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!currentMovieMedia || currentMovieMedia.type !== 'tv') return;
+        if (currentEpisodeIndex < currentMovieMedia.episodes.length - 1) playEpisode(currentEpisodeIndex + 1);
+    });
+
+    function updateMovieProgressDisplay() {
+        const current = movieVideo.currentTime || 0;
+        const duration = movieVideo.duration || 0;
+        if (duration > 0 && isFinite(duration)) movieProgress.value = (current / duration) * 1000;
+        else movieProgress.value = 0;
+        movieTimeLabel.textContent = formatTime(current) + ' / ' + formatTime(duration);
+    }
+    movieVideo.addEventListener('timeupdate', () => { if (!movieProgress.dataset.seeking) updateMovieProgressDisplay(); });
+    movieVideo.addEventListener('loadedmetadata', updateMovieProgressDisplay);
+    movieProgress.addEventListener('input', function() {
+        this.dataset.seeking = '1';
+        const dur = movieVideo.duration;
+        if (!dur || isNaN(dur) || dur <= 0) return;
+        const percent = parseFloat(this.value) / 1000;
+        movieTimeLabel.textContent = formatTime(percent * dur) + ' / ' + formatTime(dur);
+    });
+    movieProgress.addEventListener('change', function() {
+        delete this.dataset.seeking;
+        const dur = movieVideo.duration;
+        if (!dur || isNaN(dur) || dur <= 0) return;
+        movieVideo.currentTime = (parseFloat(this.value) / 1000) * dur;
+        updateMovieProgressDisplay();
+    });
+
+    // ============================================================
+    // 小狗指令解析
+    // ============================================================
+    const dogRover = document.getElementById('dogRover');
+    const dogSendBox = document.getElementById('dogSendBox');
+    const dogInput = document.getElementById('dogInput');
+    const dogSendBtn = document.getElementById('dogSendBtn');
+    const dogBubbleText = document.getElementById('dogBubbleText');
+
+    let pendingCandidates = null;
+    let pendingEpisodes = null;
+    let waitingEpisode = null;
+
+    function cnNumToInt(s) {
+        const map = { '零':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10 };
+        if (/^\d+$/.test(s)) return parseInt(s, 10);
+        if (s === '十') return 10;
+        if (s.length === 1) return map[s] !== undefined ? map[s] : null;
+        if (s.startsWith('十')) { const rest = s.slice(1); return 10 + (map[rest] || 0); }
+        if (s.includes('十')) { const [a, b] = s.split('十'); return (map[a] || 1) * 10 + (b ? (map[b] || 0) : 0); }
+        return null;
+    }
+
+    function findBestMatch(text, name) {
+        if (!name || name.length < 2) return 0;
+        const textLower = text.toLowerCase();
+        const nameLower = name.toLowerCase();
+        let best = 0;
+        for (let len = nameLower.length; len >= 2; len--) {
+            for (let start = 0; start + len <= nameLower.length; start++) {
+                const sub = nameLower.slice(start, start + len);
+                if (textLower.includes(sub)) { if (len > best) best = len; }
+            }
+        }
+        return best;
+    }
+
+    function matchByArtist(text, item) {
+        if (!item.artist) return 0;
+        return findBestMatch(text, item.artist);
+    }
+
+    function setBubbleText(text) {
+        dogBubbleText.textContent = text;
+        dogBubbleText.style.lineHeight = '1.2';
+        let size = 9;
+        const minSize = 1;
+        while (size >= minSize) {
+            dogBubbleText.style.fontSize = size + 'px';
+            void dogBubbleText.offsetHeight;
+            if (dogBubbleText.scrollHeight <= dogBubbleText.clientHeight &&
+                dogBubbleText.scrollWidth <= dogBubbleText.clientWidth) {
+                return;
+            }
+            size -= 1;
+        }
+        dogBubbleText.style.fontSize = '1px';
+        void dogBubbleText.offsetHeight;
+        let lines = text.split('\n');
+        while (lines.length > 1 && (
+            dogBubbleText.scrollHeight > dogBubbleText.clientHeight ||
+            dogBubbleText.scrollWidth > dogBubbleText.clientWidth
+        )) {
+            lines.pop();
+            dogBubbleText.textContent = lines.join('\n') + '\n…';
+            void dogBubbleText.offsetHeight;
+        }
+    }
+
+    function handleCommand(rawText) {
+        const text = rawText.trim();
+        if (!text) return;
+
+        if (waitingEpisode) {
+            const m = text.match(/([0-9]+|[零一二两三四五六七八九十]+)/);
+            if (m) {
+                const ep = cnNumToInt(m[1]);
+                if (ep !== null && ep >= 1 && ep <= waitingEpisode.media.episodes.length) {
+                    const media = waitingEpisode.media;
+                    waitingEpisode = null;
+                    setBubbleText('还有需要办的事情吗？');
+                    openMoviePlayer(media);
+                    setTimeout(function() { playEpisode(ep - 1); }, 100);
+                } else {
+                    setBubbleText('这部剧只有 ' + waitingEpisode.media.episodes.length + ' 集哦，请回复 1-' + waitingEpisode.media.episodes.length);
+                }
+            }
+            return;
+        }
+
+        if (pendingCandidates) {
+            const numMatch = text.match(/^\s*([0-9]+|[零一二两三四五六七八九十]+)\s*$/);
+            if (numMatch) {
+                const idx = cnNumToInt(numMatch[1]) - 1;
+                if (idx >= 0 && idx < pendingCandidates.length) {
+                    const chosen = pendingCandidates[idx];
+                    const ep = pendingEpisodes;
+                    pendingCandidates = null; pendingEpisodes = null;
+                    setBubbleText('');
+                    executeChoice(chosen.action, chosen.item, ep);
+                } else {
+                    setBubbleText('没有第 ' + numMatch[1] + ' 个哦，请回复 1 到 ' + pendingCandidates.length);
+                }
+                return;
+            }
+            pendingCandidates = null;
+            pendingEpisodes = null;
+        }
+
+        let search = text.replace(/第\s*([0-9]+|[零一二两三四五六七八九十]+)[集话期]?/, '').trim();
+        let episode = null;
+        const epMatch = text.match(/第\s*([0-9]+|[零一二两三四五六七八九十]+)/);
+        if (epMatch) episode = cnNumToInt(epMatch[1]);
+        search = search.replace(/[，。！？、,.!?\s]+/g, ' ').trim();
+
+        if (!search) {
+            setBubbleText('你要什么呀？直接输入名字试试');
+            return;
+        }
+
+        const allSources = [
+            { type: 'music', data: musicData || [], label: '歌曲' },
+            { type: 'movie', data: movieData || [], label: '电影/剧集' },
+            { type: 'app', data: pcApps || [], label: '应用' },
+            { type: 'novel', data: txtBooks || [], label: '小说' },
+            { type: 'comic', data: comicBooks || [], label: '漫画' }
+        ];
+
+        const matched = [];
+        allSources.forEach(function(src) {
+            src.data.forEach(function(item) {
+                const name = item.title || item.name || '';
+                const nameScore = findBestMatch(search, name);
+                const artistScore = src.type === 'music' ? matchByArtist(search, item) : 0;
+                const score = Math.max(nameScore, artistScore);
+                if (score >= 2) {
+                    matched.push({ item: item, score: score, action: src.type, label: src.label });
+                }
+            });
+        });
+
+        if (matched.length === 0) {
+            setBubbleText('小狗没找到"' + search + '"，你再想想名字？');
+            return;
+        }
+
+        matched.sort(function(a, b) { return b.score - a.score; });
+        const topScore = matched[0].score;
+        const topItems = matched.filter(function(m) { return m.score === topScore; });
+
+        if (topItems.length === 1) {
+            const m = topItems[0];
+            executeChoice(m.action, m.item, episode);
+        } else {
+            pendingCandidates = topItems.map(function(m) { return { item: m.item, action: m.action, label: m.label }; });
+            pendingEpisodes = episode;
+            showMixedCandidates(topItems);
+        }
+    }
+
+    function showMixedCandidates(items) {
+        let lines = ['找到多个，你要哪个？'];
+        items.forEach(function(m, i) {
+            const name = m.item.title || m.item.name || '';
+            const artist = m.item.artist ? ' - ' + m.item.artist : '';
+            lines.push((i + 1) + '. [' + m.label + '] ' + name + artist);
+        });
+        setBubbleText(lines.join('\n'));
+    }
+
+    function executeChoice(action, item, episode) {
+        if (action === 'music') {
+            const mp3 = getFullLoadlyUrl(item.mp3);
+            const lyric = item.lyric ? getFullLoadlyUrl(item.lyric) : '';
+            setBubbleText('还有需要办的事情吗？');
+            miniWindow.style.display = 'block';
+            loadMusicToMini(mp3, lyric, item.title, item.artist || '未知歌手');
+        } else if (action === 'movie') {
+            const media = item;
+            if (media.type === 'tv') {
+                let ep = episode;
+                if (ep === null) {
+                    setBubbleText('要看《' + media.title + '》第几集？');
+                    waitingEpisode = { media: media, index: 0 };
+                    return;
+                }
+                if (ep < 1 || ep > media.episodes.length) {
+                    setBubbleText('《' + media.title + '》只有 ' + media.episodes.length + ' 集哦，请回复 1-' + media.episodes.length);
+                    waitingEpisode = { media: media, index: 0 };
+                    return;
+                }
+                setBubbleText('还有需要办的事情吗？');
+                openMoviePlayer(media);
+                setTimeout(function() { playEpisode(ep - 1); }, 100);
+            } else {
+                setBubbleText('还有需要办的事情吗？');
+                openMoviePlayer(media);
+            }
+        } else if (action === 'app') {
+            const shareUrl = getFullLoadlyUrl(item.code);
+            setBubbleText('还有需要办的事情吗？');
+            handleDownload(shareUrl);
+        } else if (action === 'novel') {
+            setBubbleText('还有需要办的事情吗？');
+            openNovelReader(item);
+        } else if (action === 'comic') {
+            setBubbleText('还有需要办的事情吗？');
+            openComicReader(item);
+        }
+    }
+
+    dogRover.addEventListener('click', function() {
+        dogSendBox.classList.toggle('show');
+        if (dogSendBox.classList.contains('show')) setTimeout(function() { dogInput.focus(); }, 50);
+    });
+
+    function dogSend() {
+        const text = dogInput.value.trim();
+        if (!text) return;
+        dogInput.value = '';
+        handleCommand(text);
+    }
+    dogSendBtn.addEventListener('click', dogSend);
+    dogInput.addEventListener('keypress', function(e) { if (e.key === 'Enter') dogSend(); });
+
+    // ============================================================
+    // 初始化
+    // ============================================================
+    Promise.all([loadPcApps(), loadMusicData(), loadMovieData(), loadTxtBooks(), loadComicBooks()]).then(() => {
+        currentCategory = 'apps';
+        menuLabel.textContent = '应用';
+        dropdownItems.forEach(el => {
+            el.classList.remove('active');
+            if (el.dataset.category === 'apps') el.classList.add('active');
+        });
+        renderAppList();
+        updateWindowState();
+        updateMovieWindowState();
+        updateNovelWindowState();
+        updateComicWindowState();
+        console.log('APP Store 已完全启动');
+    });
+
+})();
+</script>
+</body>
+</html>
